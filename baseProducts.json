@@ -1,0 +1,20 @@
+{
+    "baseUrl":"https://mrms.ncep.noaa.gov/data/",
+    "queryLatest":"?C=M;O=D",
+    "request":[{
+        "dataType":"GRIB2",
+        "layerName":"CREF",
+        "urlPath":"2D/MergedReflectivityQCComposite/",
+        "queryLatest":true
+    },{
+        "dataType":"GRIB2",
+        "layerName":"CREF",
+        "urlPath":"2D/MergedReflectivityQCComposite/",
+        "queryLatest":true
+    },{
+        "dataType":"JSON",
+        "layerName":"probSevere",
+        "urlPath":"2D/MergedReflectivityQCComposite/",
+        "queryLatest":true
+    }]
+}

@@ -10,17 +10,13 @@ from urllib import request
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+# from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.basemap import Basemap
 from PIL import Image, ImageChops
-from math import floor
 # local modules
 from modules.mmmpy import MosaicTile, MosaicDisplay
 from modules.image_slicer import chop
-# from modules import mmmpy
-# MosaicTile, MosaicDisplay = mmmpy
 
-print('hello from MRMSdataset')
-# Basemap = basemap.Basemap
 ##############|  DEFAULT PATH   |#################
 DEST_PATH = 'data/'
 WORK_PATH = 'tmp/'
@@ -74,45 +70,22 @@ class Mosaic:
     def __init__(self, gribfile=None,  work_dir=WORK_PATH,
                  latrange=None, lonrange=None, dpi=None):
 
-        # if type(gribfile) is str:
-        # self.gribfile = gribfile
-        #     # regex = r"(?!.*_)(.*)(?=.grib2.gz)"
-        # self.valid_time = re.search(RE_GRIB_VALIDTIME, gribfile).group()[:-2]
-
-        # # elif type(gribfile) is dict:
-        # #     self.gribfile = gribfile['filePath']
+        self.gribfile = gribfile
+        self.valid_time = re.search(
+            RE_GRIB_VALIDTIME, gribfile).group()[:-2]
 
         # self._proj = 'merc'
-        # self._work_dir = work_dir
-        # self.latrange = latrange
-        # self.lonrange = lonrange
-        # self.dpi = dpi
-
-        gribIsValid = bool(re.search(r'(?=\.grib2.gz$)', gribfile))
-
-        if gribIsValid:
-            self.gribfile = gribfile
-            # regex = r"(?!.*_)(.*)(?=.grib2.gz)"
-            self.valid_time = re.search(
-                RE_GRIB_VALIDTIME, gribfile).group()[:-2]
-
-            # elif type(gribfile) is dict:
-            #     self.gribfile = gribfile['filePath']
-
-            self._proj = 'merc'
-            self._work_dir = work_dir
-            self.latrange = latrange
-            self.lonrange = lonrange
-            self.dpi = dpi
-            try:
-                self.display = MosaicDisplay(MosaicTile(filename=self.gribfile,
-                                                        latrange=self.latrange,
-                                                        lonrange=self.lonrange,
-                                                        verbose=False))
-            except:
-                print('there was an error while attemping to render grib the file')
-        else:
-            print('a valid .grib2.gz file must be provided')
+        self._work_dir = work_dir
+        self.latrange = latrange
+        self.lonrange = lonrange
+        self.dpi = dpi
+        try:
+            self.display = MosaicDisplay(MosaicTile(filename=self.gribfile,
+                                                    latrange=self.latrange,
+                                                    lonrange=self.lonrange,
+                                                    verbose=False))
+        except:
+            print('there was an error while attemping to render grib the file')
 
     def _transparent_basemap(self, options=None):
 
@@ -162,16 +135,16 @@ class Mosaic:
         return self.imgsource
 
     def _crop_source(self):
-        '''
+        """
         The MMM-py genrated mosaic is set with a thick black border
         as declared by fig.patch.set_facecolor(BGCOLOR).
         this is used to properly crop the border from the image.
         additionaly all whitespace is made transparent in this function.
-        this function is called directly from render_source()      
-        '''
+        this function is called directly from render_source()  
+        """
 
-        img_1 = Image.open(self.imgsource)
-        img_2 = img_1.convert("RGB")
+        # img_1 = Image.open(self.imgsource)
+        img_2 = Image.open(self.imgsource).convert("RGB")
         bg = Image.new("RGB", img_2.size, BGCOLOR)
         diff = ImageChops.difference(img_2, bg)
         bbox = diff.getbbox()
@@ -215,63 +188,6 @@ class Mosaic:
             # setting & saving the new tile
             filename = f'{path}/{y}.png'
             tile.save(filename)
-
-    def slice(
-        filename,
-        number_tiles=None,
-        col=None,
-        row=None,
-        save=True,
-        DecompressionBombWarning=True,
-    ):
-        """
-        Split an image into a specified number of tiles.
-        Args:
-        filename (str):  The filename of the image to split.
-        number_tiles (int):  The number of tiles required.
-        Kwargs:
-        save (bool): Whether or not to save tiles to disk.
-        DecompressionBombWarning (bool): Whether to suppress
-        Pillow DecompressionBombWarning
-        Returns:
-            Tuple of :class:`Tile` instances.
-        """
-        if DecompressionBombWarning is False:
-            Image.MAX_IMAGE_PIXELS = None
-
-        im = Image.open(filename)
-        im_w, im_h = im.size
-
-        columns = 0
-        rows = 0
-        if number_tiles:
-            validate_image(im, number_tiles)
-            columns, rows = calc_columns_rows(number_tiles)
-        else:
-            validate_image_col_row(im, col, row)
-            columns = col
-            rows = row
-
-        tile_w, tile_h = int(floor(im_w / columns)), int(floor(im_h / rows))
-
-        tiles = []
-        number = 1
-        # -rows for rounding error.
-        for pos_y in range(0, im_h - rows, tile_h):
-            for pos_x in range(0, im_w - columns, tile_w):  # as above.
-                area = (pos_x, pos_y, pos_x + tile_w, pos_y + tile_h)
-                image = im.crop(area)
-                position = (int(floor(pos_x / tile_w)) + 1,
-                            int(floor(pos_y / tile_h)) + 1)
-                coords = (pos_x, pos_y)
-                tile = Tile(image, number, position, coords)
-                tiles.append(tile)
-                number += 1
-        if save:
-            save_tiles(
-                tiles, prefix=get_basename(filename), directory=os.path.dirname(filename)
-            )
-        return tuple(tiles)
 
 
 class TileNames:

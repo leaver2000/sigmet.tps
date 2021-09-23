@@ -1,0 +1,19 @@
+{
+  "name": "mrms-ldm",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Jason Leaver <jason.leaver.developer@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start":"nodemon MRMSfetch.py"
+  },
+  "dependencies": {
+    "nodemon": "^2.0.12"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "tmp/*",
+      "data/*"
+    ]
+  }
+}
