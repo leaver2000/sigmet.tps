@@ -1,0 +1,24 @@
+name: production-env
+channels:
+  - conda-forge
+  # - default
+dependencies:
+  # - flask
+  - numpy
+  - pandas
+  - numpy
+  - matplotlib
+  - basemap
+  # - gdal
+  # required for MMM-py degribing
+  - pygrib
+  # lxml is used for webscraping
+  - lxml 
+  # # - wfs servers
+  # # - owslib
+  ######### | for the jupyter-lab |
+  # - jupyterlab
+  # - ipykernel
+  # - pip
+  # - pip:
+  #     - image_slicer
