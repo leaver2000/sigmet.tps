@@ -4,10 +4,11 @@ import os
 import sys
 import threading
 import time
-from shutil import rmtree
+#  fetch dependicies
 from urllib import request
-# libs
 import pandas as pd
+#
+
 import numpy as np
 import matplotlib.pyplot as plt
 # from mpl_toolkits.basemap import Basemap
@@ -18,37 +19,18 @@ from modules.mmmpy import MosaicTile, MosaicDisplay
 from modules.image_slicer import chop
 
 ##############|  DEFAULT PATH   |#################
-DEST_PATH = 'data/'
-WORK_PATH = 'tmp/'
-RAWDATA = f'{WORK_PATH}raw/'
+# DEST_PATH = 'data/'
+# TMP_DIR = 'tmp/'
+# RAWDATA = f'{TMP_DIR}raw/'
 ##############|  DEFAULT UTIL  |#################
 BGCOLOR = '#000000'
 RE_GRIB_VALIDTIME = r"(?!.*_)(.*)(?=.grib2.gz)"
 RE_JSON_VALIDTIME = r"(?<=MRMS_PROBSEVERE_)(.*)(?=.json)"
-##############|  DEFAULT REQUEST  |#################
-BASE_URL = 'https://mrms.ncep.noaa.gov/data/'
-BASE_PRODUCTS = [{
-    'dataType': 'GRIB2',
-    'layerName': 'CREF',
-    'urlPath': '2D/MergedReflectivityQCComposite/',
-    'latest': True
 
-}, {
-    'dataType': 'GRIB2',
-    'layerName': 'VIL',
-    'urlPath': '2D/LVL3_HighResVIL/',
-    'latest': True
 
-}, {
-    'dataType': 'GeoJSON',
-    'layerName': 'probSevere',
-    'urlPath': 'ProbSevere/PROBSEVERE/',
-    'query': '?C=M;O=D',
-    'latest': True
-}]
 ##############|  DEFAULT MAP/IMG SPECS   |#################
 PROJECTION = 'merc'
-EXAMPLE_GRIB = 'MRMS_MergedReflectivityQCComposite_00.50_20210920-021039.grib2.gz'
+# EXAMPLE_GRIB = 'MRMS_MergedReflectivityQCComposite_00.50_20210920-021039.grib2.gz'
 DESIRED_LATRANGE = (20, 55)
 DESIRED_LONRANGE = (-130, -60)
 DESIRED_ZOOM = 5
@@ -67,7 +49,7 @@ class Mosaic:
 
     """
 
-    def __init__(self, gribfile=None,  work_dir=WORK_PATH,
+    def __init__(self, gribfile=None,  work_dir=None,
                  latrange=None, lonrange=None, dpi=None):
 
         self.gribfile = gribfile
@@ -100,7 +82,7 @@ class Mosaic:
 
     def show_slippy_grid(self, basemap=None, tiles=None, show_labels=False):
         if show_labels:
-            labels = [[False, True, True, False], [True, False, False, True]]
+            labels = [[False, False, False, False], [False, False, False, True]]
         else:
             labels = [[False, False, False, False],
                       [False, False, False, False]]
@@ -166,7 +148,7 @@ class Mosaic:
         rgba.save(self.imgsource, "PNG")
         return rgba
 
-    def crop_tiles(self, file=None, product=None, validtime=None, zoom=None, tile_names=None):
+    def crop_tiles(self, file=None, tmp=None, validtime=None,product=None,  zoom=None, tile_names=None):
         # rows, cols, base _x, and _y are provided by the TileNames class.
         rows = tile_names.rows
         cols = tile_names.cols
@@ -183,7 +165,7 @@ class Mosaic:
             x = _x+tile.row
             y = _y+tile.column
             # setting & making the path
-            path = f'{DEST_PATH}{product}/{validtime}/{zoom}/{x}'
+            path = f'{tmp}{validtime}/{product}/{zoom}/{x}'
             os.makedirs(path, exist_ok=True)
             # setting & saving the new tile
             filename = f'{path}/{y}.png'
@@ -285,17 +267,13 @@ class TileNames:
             self.north_bound, self.west_bound, z)
         # By passing the (south_bounds,east_bounds) and adding (1,1) _make_zxy()
         # the returned value is the south eastern most point on the map.
-        # se_x, se_y = np.add(self._make_zxy(
-        #     self.south_bound, self.east_bound, z), (1, 1, 0))
         se_x, se_y = self._make_zxy(self.south_bound+1, self.east_bound+1, z)
         # _zxy2crds() accepts the xyz grid potion and
         # determines the max n,w,s,e crds
         n_crds, w_crds = self._zxy2crds((z, nw_x, nw_y))
         # s_crds, e_crds = self._zxy2crds(np.add((z, se_x, se_y), (0, 1, 1)))
         s_crds, e_crds = self._zxy2crds((z, se_x, se_y))
-        if self.verbose:
-            self._diag(n_crds, s_crds, w_crds, e_crds,
-                       z, nw_x, nw_y, se_x, se_y)
+
 
         # external binds in various formats
         self.n_crds = n_crds
@@ -329,115 +307,72 @@ class TileNames:
         lat_deg = np.degrees(lat_rad)
         return (lat_deg, lon_deg)
 
-    def list(self, options=None):
 
-        if options is None:
-            print(f"instance.n_crds = {self.n_crds} \n")
-            print(f"instance.w_crds = {self.w_crds} \n")
-            print(f"instance.s_crds = {self.s_crds} \n")
-            print(f"instance.e_crds = {self.e_crds} \n")
-            print(f"instance.sw_crds = {self.sw_crds} \n")
-            print(f"instance.ne_crds = {self.ne_crds} \n")
-            print(f"instance.latrange = {self.latrange} \n")
-            print(f"instance.lonrange = {self.lonrange} \n")
-            print(f"instance.nw_zxy = {self.nw_zxy} \n")
-            print(f"instance.se_zxy = {self.se_zxy} \n")
-            print("for zoom_level in self.tiles: \n")
-            for zoom_level in self.tiles:
-                print(f"    zoom_level = {zoom_level} \n")
 
-    def _diag(self, n_crds, s_crds, w_crds, e_crds, z, nw_x, nw_y, se_x, se_y):
-        spacer = '                                 '
-        print(f'\n      ||  generating vertex range for zoom level {z}  || \n',
-              f'\n   nw_crds:     {spacer}      ne_crds',
 
-              f'\n{(np.round(n_crds,4),np.round(w_crds,4))}{spacer}{(np.round(n_crds,4),np.round(e_crds,4))}',
-              '\n    _________________________________________________________',
-              '\n   |                                                         |',
-              '\n   |                                                         |',
-              '\n   |                                                         |',
-              '\n   |                                                         |',
-              '\n   |                                                         |',
-              '\n   |                                                         |',
-              '\n   |                                                         |',
-              '\n   |                                                         |',
-              '\n   |_________________________________________________________|',
-              #   f'\n sw_crds: {(np.round(s_crds,4),np.round(w_crds,4))}                 se_crds: {(np.round(s_crds,4),np.round(e_crds,4))}',
-              f'\n   sw_crds:     {spacer}      se_crds',
 
-              f'\n{(np.round(s_crds,4),np.round(w_crds,4))}{spacer}{(np.round(s_crds,4),np.round(e_crds,4))}',
-              f'\n\n latrange: {(n_crds,s_crds)}\n lonrange: {(w_crds,e_crds)}'
 
-              f'\n\n nw_zxy: {(z,nw_x,nw_y)} se_zxy: {(z,se_x,se_y)}\n')
+def render_tiles(gribpath=None, gribfile=None, zoom=None,
+                 validtime=None, product=None, dirs=None):
+ 
+    img,data = dirs
+    gf = gribpath
+    vt = validtime
+    dpi = np.multiply(150, zoom)
+    img_source = f'{product}-{vt}-{zoom}'
+   
+    # set zxy params via the TileNames Class
+    tn = TileNames(latrange=DESIRED_LATRANGE,
+                   lonrange=DESIRED_LONRANGE,
+                   zooms=zoom, verbose=False)
+
+    # wrapper for the MMM-py MosaicDisplay class
+    display = Mosaic(gribfile=gf, dpi=dpi, work_dir=img,
+                     latrange=tn.latrange, lonrange=tn.lonrange)
+
+    # wrapper for the MMM-py plot_horiz function
+    file = display.render_source(filename=img_source)
+
+    # using the provided tile names slice the Mosaic image into a slippy map directory
+    display.crop_tiles(file=file, tmp=data, product=product,
+                       validtime=vt, zoom=zoom, tile_names=tn)
+    plt.close('all')
 
 
 class Fetch:
-    """
-    # FetchData
+    def __init__(self, base_products=None, save_loc=None):
+        self.baseurl = base_products['baseUrl']
+        self.layers = base_products['layers']
+        self.query = base_products['query']
+        self.save_loc = save_loc
 
-    Get current data serves as the local data manager for the GenerateMosaic Class.  GCD's role is to access data from
-    the NSSL dataset.  Passing an list of objects with the path to the layer directory and a layername. GCD will retreive
-    and store the raw data locally for later processing. GCD Returns an object with information specific to the raw data
-    that was retreived, such as the validTime and localPath directory to the raw data.
-
-    This list can then be passed to the GenerateMosaic():
-
-    class where the information will be degribed and processed into a WMTS friendly format.
-
-    example usage....
-
-    data = GetCurrentData(LAYERS)
-
-    GenerateMosaic(data.layers)
-
-    -----------------------------------------------------------------------------
-
-
-    """
-
-    def __init__(self, layers=BASE_PRODUCTS):
-
-        os.makedirs(RAWDATA, exist_ok=True)
-        self.baseurl = BASE_URL
-        self.layers = layers
         self.grib_data = list()
         self.json_data = list()
 
-        try:
-            for layer in self.layers:
-                try:
-                    if layer['dataType'] == 'GRIB2':
-                        self._get_grib2(layer)
-                    if layer['dataType'] == 'GeoJSON':
-                        self._get_geojson(layer)
-
-                    # self._retreive_data(layer)
-                except:
-                    print('there was an error in the data request for the layer',
-                          layer['layerName'])
-
-        except:
-            print('there was an error in the initial layer request')
+        for layer in self.layers:
+            if layer['dataType'] == 'GRIB2':
+                self._get_grib2(layer)
+            if layer['dataType'] == 'JSON':
+                self._get_geojson(layer)
 
     def _get_geojson(self, layer):
         layer_directory = self.baseurl+layer['urlPath']
-        # page = pd.read_html(layer_directory+layer['query'])?C=M;O=D
-        page = pd.read_html(f'{layer_directory}?C=M;O=D')
+
+        page = pd.read_html(layer_directory+self.query)
         layer_product = np.array(page)[0][2][0]
 
-        # print(layer_directory+layer_product)
+
         request.urlretrieve(layer_directory+layer_product,
-                            RAWDATA+layer_product)
-        # regex = r"(?<=MRMS_PROBSEVERE_)(.*)(?=.json)"
-        # RE_JSON_VALIDTIME=r"(?<=MRMS_PROBSEVERE_)(.*)(?=.json)"
+                            self.save_loc+layer_product)
+
         validtime = re.search(RE_JSON_VALIDTIME, layer_product).group()[:-2]
 
         layer['validTime'] = validtime.replace("_", "-")
-        layer['filePath'] = RAWDATA+layer_product
+        layer['filePath'] = self.save_loc+layer_product
 
     def _validate_time(self, layer_prods=None):
 
-        # regex = r"(?!.*_)(.*)(?=.grib2.gz)"
+
         for prods in layer_prods:
             valid_time = re.search(RE_GRIB_VALIDTIME, prods[0]).group()[:-2]
 
@@ -449,95 +384,15 @@ class Fetch:
                 continue
 
     def _get_grib2(self, layer):
-        layer_directory = self.baseurl+layer['urlPath']  # +layer['query']
-        page = pd.read_html(f'{layer_directory}?C=M;O=D')  # ?C=M;O=D
+        layer_directory = self.baseurl+layer['urlPath']  
+        page = pd.read_html(layer_directory+self.query) 
 
         layer_product, validtime = self._validate_time(
             layer_prods=np.array(*page)[3:])
 
         request.urlretrieve(layer_directory+layer_product,
-                            RAWDATA+layer_product)
+                            self.save_loc+layer_product)
 
         layer['validTime'] = validtime
-        layer['filePath'] = RAWDATA+layer_product
-        self.grib_data.append(RAWDATA+layer_product)
-
-
-def render_tiles(gribpath=None, gribfile=EXAMPLE_GRIB,
-                 validtime=None, product=None):
-
-    if gribpath is None:
-        gf = f'{RAWDATA}{gribfile}'
-    elif gribpath is not None:
-        gf = gribpath
-    if validtime is None:
-        vt = re.search(RE_GRIB_VALIDTIME, gribfile).group()[:-2]
-    elif validtime is not None:
-        vt = validtime
-
-    zoom = DESIRED_ZOOM
-    # for zoom in DESIRED_ZOOMS:
-
-    dpi = np.multiply(150, zoom)
-    img_source = f'{product}-{vt}-{zoom}'
-    # _diag(img_source, product, vt, zoom, dpi)
-
-    # set zxy params via the TileNames Class
-    tn = TileNames(latrange=DESIRED_LATRANGE,
-                   lonrange=DESIRED_LONRANGE,
-                   zooms=zoom, verbose=False)
-
-    # wrapper for the MMM-py MosaicDisplay class
-    display = Mosaic(gribfile=gf, dpi=dpi,  work_dir=WORK_PATH,
-                     latrange=tn.latrange, lonrange=tn.lonrange)
-
-    # wrapper for the MMM-py plot_horiz function
-    file = display.render_source(filename=img_source)
-
-    # using the provided tile names slice the Mosaic image into a slippy map directory
-    display.crop_tiles(file=file, product=product,
-                       validtime=vt, zoom=zoom, tile_names=tn)
-    plt.close('all')
-
-
-def call_tiles():
-    product = Fetch(layers=BASE_PRODUCTS)
-
-    for prod in product.layers:
-        print('')
-        print('|-- DATA RETREIVED --|')
-        print(f"    layerName = {prod['layerName']}")
-        print(f"    validTime = {prod['validTime']}")
-        print(f"    filePath = {prod['filePath']}\n")
-
-        if prod['dataType'] == 'GRIB2':
-            render_tiles(
-                gribpath=prod['filePath'], validtime=prod['validTime'], product=prod['layerName'])
-
-        else:
-            print(
-                f'python support for {prod["dataType"] } is not yet implmented')
-
-    rmtree(WORK_PATH)
-
-
-call_tiles()
-
-# start_time = time.time()
-# call_tiles()
-# count = 1
-# while not threading.Event().wait(600):
-#     call_tiles()
-#     elapsed_time = time.time() - start_time
-#     days = 0
-#     if elapsed_time >= 86400:
-#         days = int(elapsed_time / 86400)
-#     elapsed = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
-#     count += 1
-#     if days == 0:
-#         print(f"The module has been running for {elapsed} hours")
-
-#     else:
-#         print(f"The module has been running for {days} days & {elapsed} hours")
-
-#     print(f"The module has executed {count} times.\n")
+        layer['filePath'] = self.save_loc+layer_product
+        self.grib_data.append(self.save_loc+layer_product)

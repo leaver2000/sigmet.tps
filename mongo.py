@@ -1,19 +1,78 @@
+import json
+import os
+import re
+import glob
+from shutil import rmtree
+##
 from pymongo import MongoClient
-# pprint library is used to make the output look more pretty
+from gridfs import GridFS
 from pprint import pprint
-# connect to MongoDB, change the << MONGODB URL >> to reflect your own connection string
-# client = MongoClient(<<MONGODB URL>>)
+##
+from zxyMRMS import Fetch, render_tiles 
+from fetch import Fetch
 
-# client = MongoClient(
-#     "mongodb+srv://python:ma0jZKaR4cCLn3JK@wild-blue-yonder.jy40m.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
-# # db = client.test
+##############|  DEFAULT PATH   |#################
+TMP_RAW='tmp/raw/'
+TMP_IMG ='tmp/img/'
+TMP_DATA='tmp/data/'
+RE_DATA = r"(?<=tmp/data/)(.*)"
+GLB_DATA = TMP_DATA+'*/*/*/*/'
+##############|  MONGODB CONNECTION   |#################
+db = MongoClient(
+    "mongodb+srv://python_admin:RrbPVfalrHkXMcP5@wild-blue-yonder.jy40m.mongodb.net/database?retryWrites=true&w=majority")
+fs = GridFS(db.nexrad)
 
-# db = client.admin
+def write_to_database():
+    i = 0
+    for filename in glob.glob(os.path.join(GLB_DATA, '*.png')):     
+        with open(filename, 'rb') as tile:
+            name = re.search(RE_DATA,filename).group()
+            f = fs.new_file(filename=name)
+            try:
+                f.write(tile)
+                i+=1
+            finally:
+                print(f'{i} files saved to mongodb')              
+                f.close()
 
-client = MongoClient(
-    "mongodb+srv://localhost_development:tHNJt1tL8qRHOVaK@wild-blue-yonder.jy40m.mongodb.net/database?retryWrites=true&w=majority")
-db = client.admin
+def make_nexrad_tiles():
+    os.makedirs(TMP_RAW, exist_ok=True)
+    os.makedirs(TMP_IMG, exist_ok=True)
+    os.makedirs(TMP_DATA, exist_ok=True)
 
-# Issue the serverStatus command and print the results
-serverStatusResult = db.command("serverStatus")
-pprint(serverStatusResult)
+    with open('baseProducts.json') as prods:
+        bp = json.load(prods)
+        product = Fetch(base_products=bp, save_loc=TMP_RAW)
+
+        for prod in product.layers:
+            print('')
+            print('|-- DATA RETREIVED --|')
+            print(f"    layerName = {prod['layerName']}")
+            print(f"    validTime = {prod['validTime']}")
+            print(f"    filePath = {prod['filePath']}\n")
+
+            if prod['dataType'] == 'GRIB2':
+                render_tiles( zoom=5,
+                    gribpath=prod['filePath'], validtime=prod['validTime'], product=prod['layerName'], dirs=(TMP_IMG,TMP_DATA))
+
+            else:
+                print(
+                    f'python support for {prod["dataType"] } is not yet implmented')
+
+def read_database_tiles():
+    pass
+
+def clean_up_database():
+    pass
+
+def clean_up_root():
+    pass
+
+
+make_nexrad_tiles()
+write_to_database()
+rmtree('tmp/', ignore_errors=False, onerror=None)
+
+
+
+
