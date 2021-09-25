@@ -1,40 +1,27 @@
-# builtins
 import re
 import os
-import sys
-import threading
-import time
 #  fetch dependicies
 from urllib import request
 import pandas as pd
 #
-
 import numpy as np
 import matplotlib.pyplot as plt
-# from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.basemap import Basemap
 from PIL import Image, ImageChops
 # local modules
 from modules.mmmpy import MosaicTile, MosaicDisplay
 from modules.image_slicer import chop
 
-##############|  DEFAULT PATH   |#################
-# DEST_PATH = 'data/'
-# TMP_DIR = 'tmp/'
-# RAWDATA = f'{TMP_DIR}raw/'
 ##############|  DEFAULT UTIL  |#################
 BGCOLOR = '#000000'
+
+##############|  REGEX   |#################
 RE_GRIB_VALIDTIME = r"(?!.*_)(.*)(?=.grib2.gz)"
 RE_JSON_VALIDTIME = r"(?<=MRMS_PROBSEVERE_)(.*)(?=.json)"
 
-
 ##############|  DEFAULT MAP/IMG SPECS   |#################
-PROJECTION = 'merc'
-# EXAMPLE_GRIB = 'MRMS_MergedReflectivityQCComposite_00.50_20210920-021039.grib2.gz'
 DESIRED_LATRANGE = (20, 55)
 DESIRED_LONRANGE = (-130, -60)
-DESIRED_ZOOM = 5
-
 
 class Mosaic:
     """
@@ -153,12 +140,12 @@ class Mosaic:
         rows = tile_names.rows
         cols = tile_names.cols
         _x, _y = tile_names.baseline
-        # tiles are generated based on conditions set by
-        # slippy map tile name generator
-        # tiles = image_slicer.slice(
-        #     filename=file, col=cols, row=rows, save=False)
+
+        # tiles are generated based on conditions 
+        # set by slippy map tile name generator
         tiles = chop(
             filename=file, col=cols, row=rows, save=False)
+
         for tile in tiles:
             # the baseline x,y value provides an offset to
             # to correct the zxy position for each tile.
@@ -306,8 +293,6 @@ class TileNames:
         lat_rad = np.arctan(np.sinh(np.pi * (1 - 2 * y / n)))
         lat_deg = np.degrees(lat_rad)
         return (lat_deg, lon_deg)
-
-
 
 
 

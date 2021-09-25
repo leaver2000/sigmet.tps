@@ -9,12 +9,14 @@ from gridfs import GridFS
 from pprint import pprint
 ##
 from zxyMRMS import Fetch, render_tiles 
-from fetch import Fetch
+# from fetch import Fetch
 
 ##############|  DEFAULT PATH   |#################
 TMP_RAW='tmp/raw/'
-TMP_IMG ='tmp/img/'
+TMP_IMG='tmp/img/'
 TMP_DATA='tmp/data/'
+directories = (TMP_RAW,TMP_IMG,TMP_DATA)
+##############|  REGEX   |#################
 RE_DATA = r"(?<=tmp/data/)(.*)"
 GLB_DATA = TMP_DATA+'*/*/*/*/'
 ##############|  MONGODB CONNECTION   |#################
@@ -36,9 +38,8 @@ def write_to_database():
                 f.close()
 
 def make_nexrad_tiles():
-    os.makedirs(TMP_RAW, exist_ok=True)
-    os.makedirs(TMP_IMG, exist_ok=True)
-    os.makedirs(TMP_DATA, exist_ok=True)
+    for folder in directories:
+        os.makedirs(folder, exist_ok=True)
 
     with open('baseProducts.json') as prods:
         bp = json.load(prods)
