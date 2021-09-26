@@ -817,7 +817,6 @@ class MosaicGrib(object):
                 nclist.append(nc)
                 # pass
             except:
-                print('hello from read_grib_list')
                 # Attempt to read grib2
                 # Can try to decompress if gzipped
                 gzip_flag = False
