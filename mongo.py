@@ -4,19 +4,28 @@ import re
 import glob
 from shutil import rmtree
 #   mongodb
-from dotenv import load_dotenv, dotenv_values
+# from dotenv import load_dotenv, dotenv_values
 from pymongo import MongoClient
 from gridfs import GridFS
 #   local module
 from zxyMRMS import Fetch, render_tiles
+from pprint import pprint
+# dev_env = load_dotenv()
 
-dev_env = load_dotenv()
-
-if dev_env:
-    conf = dotenv_values('.env')
-    username = conf['USERNAME']
-    password = conf['PASSWORD']
-else:
+# if dev_env:
+#     conf = dotenv_values('.env')
+#     username = conf['USERNAME']
+#     password = conf['PASSWORD']
+# else:
+#     pass
+try:
+    from dotenv import dotenv_values
+    env = dotenv_values('.env')
+    username = env['USERNAME']
+    password = env['PASSWORD']
+    print('using dev env')
+except:
+    print('could not load dotenv')
     pass
 
 MONGODB_URL = f"mongodb+srv://{username}:{password}@wild-blue-yonder.jy40m.mongodb.net/database?retryWrites=true&w=majority"
@@ -83,9 +92,12 @@ def write_db_directory():
             print(layer)
 
 
-write_db_directory()
+# write_db_directory()
+# with open('tmp/raw/MRMS_PROBSEVERE_20210926_053837.json', 'rb') as prob_severe:
+#     # pprint(prob_severe)
+#     pd.read_json(prob_severe)
 
 
-# make_nexrad_tiles()
-# write_img_to_db()
+make_nexrad_tiles()
+write_img_to_db()
 # rmtree('tmp/', ignore_errors=False, onerror=None)
