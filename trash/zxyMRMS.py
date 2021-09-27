@@ -23,6 +23,7 @@ RE_JSON_VALIDTIME = r"(?<=MRMS_PROBSEVERE_)(.*)(?=.json)"
 DESIRED_LATRANGE = (20, 55)
 DESIRED_LONRANGE = (-130, -60)
 
+
 class Mosaic:
     """
     GenerateMosaic is a wrapper for the MMM-py library
@@ -69,7 +70,8 @@ class Mosaic:
 
     def show_slippy_grid(self, basemap=None, tiles=None, show_labels=False):
         if show_labels:
-            labels = [[False, False, False, False], [False, False, False, True]]
+            labels = [[False, False, False, False],
+                      [False, False, False, True]]
         else:
             labels = [[False, False, False, False],
                       [False, False, False, False]]
@@ -135,13 +137,13 @@ class Mosaic:
         rgba.save(self.imgsource, "PNG")
         return rgba
 
-    def crop_tiles(self, file=None, tmp=None, validtime=None,product=None,  zoom=None, tile_names=None):
+    def crop_tiles(self, file=None, tmp=None, validtime=None, product=None,  zoom=None, tile_names=None):
         # rows, cols, base _x, and _y are provided by the TileNames class.
         rows = tile_names.rows
         cols = tile_names.cols
         _x, _y = tile_names.baseline
 
-        # tiles are generated based on conditions 
+        # tiles are generated based on conditions
         # set by slippy map tile name generator
         tiles = chop(
             filename=file, col=cols, row=rows, save=False)
@@ -261,7 +263,6 @@ class TileNames:
         # s_crds, e_crds = self._zxy2crds(np.add((z, se_x, se_y), (0, 1, 1)))
         s_crds, e_crds = self._zxy2crds((z, se_x, se_y))
 
-
         # external binds in various formats
         self.n_crds = n_crds
         self.w_crds = w_crds
@@ -295,17 +296,15 @@ class TileNames:
         return (lat_deg, lon_deg)
 
 
-
-
 def render_tiles(gribpath=None, gribfile=None, zoom=None,
                  validtime=None, product=None, dirs=None):
- 
-    img,data = dirs
+
+    img, data = dirs
     gf = gribpath
     vt = validtime
     dpi = np.multiply(150, zoom)
     img_source = f'{product}-{vt}-{zoom}'
-   
+
     # set zxy params via the TileNames Class
     tn = TileNames(latrange=DESIRED_LATRANGE,
                    lonrange=DESIRED_LONRANGE,
@@ -327,14 +326,14 @@ def render_tiles(gribpath=None, gribfile=None, zoom=None,
 class Fetch:
     def __init__(self, base_products=None, save_loc=None):
         self.baseurl = base_products['baseUrl']
-        self.layers = base_products['layers']
+        self.features = base_products['layers']
         self.query = base_products['query']
         self.save_loc = save_loc
 
         self.grib_data = list()
         self.json_data = list()
 
-        for layer in self.layers:
+        for layer in self.features:
             if layer['dataType'] == 'GRIB2':
                 self._get_grib2(layer)
             if layer['dataType'] == 'JSON':
@@ -346,7 +345,6 @@ class Fetch:
         page = pd.read_html(layer_directory+self.query)
         layer_product = np.array(page)[0][2][0]
 
-
         request.urlretrieve(layer_directory+layer_product,
                             self.save_loc+layer_product)
 
@@ -356,7 +354,6 @@ class Fetch:
         layer['filePath'] = self.save_loc+layer_product
 
     def _validate_time(self, layer_prods=None):
-
 
         for prods in layer_prods:
             valid_time = re.search(RE_GRIB_VALIDTIME, prods[0]).group()[:-2]
@@ -369,8 +366,8 @@ class Fetch:
                 continue
 
     def _get_grib2(self, layer):
-        layer_directory = self.baseurl+layer['urlPath']  
-        page = pd.read_html(layer_directory+self.query) 
+        layer_directory = self.baseurl+layer['urlPath']
+        page = pd.read_html(layer_directory+self.query)
 
         layer_product, validtime = self._validate_time(
             layer_prods=np.array(*page)[3:])
