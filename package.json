@@ -5,7 +5,8 @@
   "author": "Jason Leaver <jason.leaver.developer@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon local_data_manager.py"
+    "start": "nodemon local_data_manager.py",
+    "test": "nodemon test.py"
   },
   "dependencies": {
     "nodemon": "^2.0.13"

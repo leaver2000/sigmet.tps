@@ -1,0 +1,26 @@
+{
+    "request":[{
+        "name":"CREF",
+        "longName":"MRMS Merged Composite Reflectivity",
+        "dtype":"GRIB2",
+        "urlPath":"2D/MergedReflectivityQCComposite/",
+        "description":"",
+        "validTimes":[]
+    },{
+        "name":"VIL",
+        "longName":"MRMS HighRes Vertically Intergrated Liqud",
+        "dtype":"GRIB2",
+        "urlPath":"2D/LVL3_HighResVIL/",
+        "description":"",
+        "validTimes":[]
+    },{
+        "name":"probSevere",
+        "longName":"MRMS ProbSevere V3.01",
+        "dtype":"JSON",
+        "urlPath":"ProbSevere/PROBSEVERE/",
+        "description":"",
+        "validTimes":[]
+    }]
+}
+
+

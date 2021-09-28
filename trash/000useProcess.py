@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-
 from modules.withMRMS import TileNames, Mosaic, ProbSevere
 
 DESIRED_LATRANGE = (20, 55)
@@ -12,10 +11,8 @@ def process_tiles(gribpath=None, gribfile=None, zoom=None,
                   validtime=None, product=None, dirs=None):
 
     img, data = dirs
-    gf = gribpath
-    vt = validtime
     dpi = np.multiply(150, zoom)
-    img_source = f'{product}-{vt}-{zoom}'
+    img_source = f'{product}-{validtime}-{zoom}'
 
     # set zxy params via the TileNames Class
     tn = TileNames(latrange=DESIRED_LATRANGE,
@@ -23,7 +20,7 @@ def process_tiles(gribpath=None, gribfile=None, zoom=None,
                    zooms=zoom, verbose=False)
 
     # wrapper for the MMM-py MosaicDisplay class
-    display = Mosaic(gribfile=gf, dpi=dpi, work_dir=img,
+    display = Mosaic(gribfile=gribpath, dpi=dpi, work_dir=img,
                      latrange=tn.latrange, lonrange=tn.lonrange)
 
     # wrapper for the MMM-py plot_horiz function
@@ -31,7 +28,7 @@ def process_tiles(gribpath=None, gribfile=None, zoom=None,
 
     # using the provided tile names slice the Mosaic image into a slippy map directory
     display.crop_tiles(file=file, tmp=data, product=product,
-                       validtime=vt, zoom=zoom, tile_names=tn)
+                       validtime=validtime, zoom=zoom, tile_names=tn)
     plt.close('all')
 
 

@@ -1,34 +1,28 @@
-from shutil import rmtree
-from glob import glob
-import json
-import os
-import pandas as pd
-import numpy as np
-# import multiprocessing
-
+# from shutil import rmtree
+# from glob import glob
+# import json
+from pprint import pprint
+# import os
 # import pandas as pd
 # import numpy as np
+# import multiprocessing
 
-# from modules.useProb import ProbSevere
-from modules.withMongo import post_collection, update_availiable_products
+
+# from modules.withMongo import post_collection
 # from modules.withMRMS import Fetch, ProbSevere, render_tiles
-from modules.useCollect import Fetch
-from modules.useProcess import process_tiles, process_probsevere
-
-
+# from modules.withFetch import Fetch
+# from modules.useProcess import process_tiles, process_probsevere
+from modules.baseproducts import BaseProducts
+from modules.probsevere import ProbSevere
 # from pprint import pprint
 import time
 
-
-#######
 
 ##############|  DEFAULT PATH   |#################
 TMP_RAW = 'tmp/raw/'
 TMP_IMG = 'tmp/img/'
 TMP_DATA = 'tmp/data/'
 directories = (TMP_RAW, TMP_IMG, TMP_DATA)
-REQUEST = 'request.json'
-BASE_PRODUCTS = 'base_products.json'
 
 
 ##############|  REGEX   |#################
@@ -36,128 +30,91 @@ RE_DATA = r"(?<=tmp/data/)(.*)"
 GLB_DATA = TMP_DATA+'*/*/*/*/'
 
 
-def _write(data):
-    # only the probSevere JSON data is
-    # passed to this function.
-    post_collection(data, collection='PROBSEVERE')
-    for filename in glob(os.path.join(GLB_DATA, '*.png')):
-        with open(filename, 'rb') as tile:
-            post_collection(tile, collection='FILESERVER')
-    return
+# def _write(data):
+#     # only the probSevere JSON data is
+#     # passed to this function.
+#     post_collection(data, collection='PROBSEVERE')
+#     for filename in glob(os.path.join(GLB_DATA, '*.png')):
+#         with open(filename, 'rb') as tile:
+#             post_collection(tile, collection='FILESERVER')
+#     return
+
+# rmtree('tmp/', ignore_errors=False, onerror=None)
+ps = ProbSevere()
 
 
-def _prep(products):
+def ldm_controller():
     """
-    Once the data is collected, it then enters the data preparation stage. 
-    raw data is cleaned up and organized for the following stage of data processing.
-    During preparation, raw data is diligently checked for any errors. 
-    The purpose of this step is to eliminate bad data  (redundant, incomplete, or incorrect data) and begin to create high-quality data for the best
-    """
-    # post_availiable(products)
-    avail = list()
-    for prod in products:
-        if prod['dataType'] == 'GRIB2':
-            process_tiles(zoom=5, gribpath=prod['filePath'], validtime=prod['validTime'],
-                          product=prod['layerName'], dirs=(TMP_IMG, TMP_DATA))
+    # Steps
 
-        elif prod['dataType'] == 'JSON':
-            ps = process_probsevere(filepath=prod['filePath'])
-            pass
-        a = dict(layerName=prod['layerName'], validTime=prod['validTime'])
-        avail.append(a)
-
-    update_availiable_products(avail)
-    return ps.feature_collection
-
-
-def _collect(products):
-    with open(products) as prods:
-        base_products = np.array(pd.read_json(prods))
-        # for product in base_products:
-        bp = Fetch(base_products=base_products,
-                   save_loc='tmp/', dtype='ndarray')
-
-        return bp.features
-    # with open(products) as prods:
-    #     base_products = json.load(prods)
-    #     bp = Fetch(base_products=base_products,
-    #                dtype='ndarray', save_loc=TMP_RAW)
-    #     return bp.features
-
-
-def _manage(instance):
-    if instance == 'START':
-        for folder in directories:
-            os.makedirs(folder, exist_ok=True)
-    elif instance == 'STOP':
-        rmtree('tmp/', ignore_errors=False, onerror=None)
-
-
-def ldm_controller(req):
-    """
-    ## Steps
-
-    #### collect:
+    # collect:
         Opens baseProducts.json and pulls data from the MRMS Dataset using the Fetch module.
 
-    #### prep:
-        prep itterates through the dataset and calls the aplicable functions to process the data.  Additional 
+    # prep:
+        prep itterates through the dataset and calls the aplicable functions to process the data.  Additional
 
-    #### process:
+    # process:
         calls modules to process the grib and json data.
 
-    #### write:
+    # write:
         stores the processed information into the mongodb database
 
-    ##### manage:
+    # manage:
         manage is called at the START and STOP.  manage
 
     """
+    #####################|  PROBSEVERE INSTANCE   |#####################
+    # First an EXSISTING instance of ProbSevere is passed into a NEW instance BaseProducts.
+    #
+    # BaseProducts manages its own state without resetting the ProbSevere state.
+    #
+    # ProbSevere returns GeoJson to BaseProducts which is then saved to MONGO DB
+    # Each new instance of BaseProducts removes the existing GeoJSON from memory.
+    # While ProbSevere maintains its memory outside of the loop for compairsons
+    # to previous itteratings of ndarrays.
+    #
+    ########################################################
 
-    initial_timer = time.time()
-    _manage('START')
-
+    bp = BaseProducts(probsevere=ps)
+    # maintain_tmp_tree creates a new tmp tree dir for intermediate processing
+    initial_timer = bp.maintain_tmp_tree('START')
     #####################|  COLLECT   |#####################
+    # call the baseproducts fetch api to collect the raw data
+    ########################################################
     intermediate_timer = time.time()
-    base_products = _collect(req)
-    print(f'data collection took \
+    bp.collect(save_loc=TMP_RAW)
+    print(f'data collection accomplished in: \
             {round(time.time() - intermediate_timer)} seconds')
 
-    #####################|  PREP   |#####################
+    ######################|  PREPARE & PROCESS  |#################
+    # call the baseproducts prepare_and_process function.
+    # this stage relies heavily on the withMRMS module and MMM-py
+    # to handle the data processing required to render the png images.
+    ###############################################################
     intermediate_timer = time.time()
-    feature_collection = _prep(base_products)
-    print(f'data processing took \
+    bp.prepare_and_process(dtype='JSON')
+    bp.prepare_and_process(dtype='GRIB2')
+    print(f'data processing accomplished in: \
             {round(time.time() - intermediate_timer)} seconds')
 
-    #####################|  WRITE   |#####################
+    #######################|  COMMIT & POST   |####################
+    #
+    ###############################################################
     intermediate_timer = time.time()
-    _write(feature_collection)
+    bp.commit_and_post()
+
     print(f'data writing took \
             {round(time.time() - intermediate_timer)} seconds')
+    # pprint(ps.feature_collection)
+    # once the database is updated maintain_tmp_tree then removes tmp/ and all associated files.
+    end_timer = bp.maintain_tmp_tree('STOP')
+    print(f'total processing accomplished in: \
+            {round(end_timer - initial_timer)} seconds')
 
-    _manage('STOP')
 
-    print(f'total processing took \
-            {round(time.time() - initial_timer)} seconds')
+# with open('tmp/raw/MRMS_PROBSEVERE_20210928_111041.json', 'r') as f:
+#     json_object = json.load(f)
+#     print(json_object['validTime'],json_object['features'])
 
 
-# ldm_controller('requests.json')
-# data = [{
-#     'dataType': 'GRIB2',
-#     'layerName': 'CREF',
-#     'urlPath': '2D/MergedReflectivityQCComposite/',
-#     'validTime': '20210927-1530',
-#     'filePath': 'tmp/MRMS_MergedReflectivityQCComposite_00.50_20210927-153027.grib2.gz'
-# }, {
-#     'dataType': 'GRIB2',
-#     'layerName':
-#     'VIL',
-#     'urlPath':
-#     '2D/LVL3_HighResVIL/',
-#     'validTime': '20210927-1520', 'filePath': 'tmp/MRMS_LVL3_HighResVIL_00.50_20210927-152000.grib2.gz'},
-#     {
-#     'dataType': 'JSON', 'layerName': 'probSevere', 'urlPath': 'ProbSevere/PROBSEVERE/', 'validTime': '20210927-1532', 'filePath': 'tmp/MRMS_PROBSEVERE_20210927_153237.json'}]
-
-# post_availiable(data)
-# for d in data:
-#     update_availiable(d)
+ldm_controller()

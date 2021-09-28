@@ -296,86 +296,59 @@ class TileNames:
         return (lat_deg, lon_deg)
 
 
-# def render_tiles(gribpath=None, gribfile=None, zoom=None,
-#                  validtime=None, product=None, dirs=None):
+# class ProbSevere:
+#     def __init__(self, feature_collection=None):
+#         if feature_collection is not None:
+#             instance = feature_collection[0]
+#             validtime = instance[2]
 
-#     img, data = dirs
-#     gf = gribpath
-#     vt = validtime
-#     dpi = np.multiply(150, zoom)
-#     img_source = f'{product}-{vt}-{zoom}'
+#             self.features = list()
 
-#     # set zxy params via the TileNames Class
-#     tn = TileNames(latrange=DESIRED_LATRANGE,
-#                    lonrange=DESIRED_LONRANGE,
-#                    zooms=zoom, verbose=False)
+#             self.feature_collection = dict(version='3.0.1', type='FeatureCollection', validtime=validtime, features=self.features,
+#                                            product='ProbSevere:track', source="NOAA/NCEP Central Operations")
 
-#     # wrapper for the MMM-py MosaicDisplay class
-#     display = Mosaic(gribfile=gf, dpi=dpi, work_dir=img,
-#                      latrange=tn.latrange, lonrange=tn.lonrange)
+#             self.geometry_collection = dict(type="GeometryCollection")
 
-#     # wrapper for the MMM-py plot_horiz function
-#     file = display.render_source(filename=img_source)
+#             self._iterate(feature_collection)
 
-#     # using the provided tile names slice the Mosaic image into a slippy map directory
-#     display.crop_tiles(file=file, tmp=data, product=product,
-#                        validtime=vt, zoom=zoom, tile_names=tn)
-#     plt.close('all')
+#             return
+#         else:
+#             pass
+#         return None
 
-
-class ProbSevere:
-    def __init__(self, feature_collection=None):
-        if feature_collection is not None:
-            instance = feature_collection[0]
-            validtime = instance[2]
-
-            self.features = list()
-
-            self.feature_collection = dict(version='3.0.1', type='FeatureCollection', validtime=validtime, features=self.features,
-                                           product='ProbSevere:track', source="NOAA/NCEP Central Operations")
-
-            self.geometry_collection = dict(type="GeometryCollection")
-
-            self._iterate(feature_collection)
-
-            return
-        else:
-            pass
-        return None
-
-    def _iterate(self, arr):
-        for value in arr:
-            # print(value)
-            self.features.append(handle_feature(value[6]))
+#     def _iterate(self, arr):
+#         for value in arr:
+#             # print(value)
+#             self.features.append(handle_feature(value[6]))
 
 
-def get_storm_motion(mtn_s, mtn_e, mean_w):
-    return [mtn_s, mtn_e, mean_w]
+# def get_storm_motion(mtn_s, mtn_e, mean_w):
+#     return [mtn_s, mtn_e, mean_w]
 
 
-def handle_feature(feat):
-    # PROPS
-    geom = feat['geometry']
-    props = feat['properties']
-    props['MODELS'] = feat['models']['probsevere']['LINE01']
-    # CRDS
-    crds = geom['coordinates']
-    lons, lats = np.rollaxis(np.array(crds), 2, 0)
-    geometries = list()
-    geometries.append(geom)
-    geometries.append(dict(type="point", coordinates=[
-                      np.mean(lons), np.mean(lats)]))
+# def handle_feature(feat):
+#     # PROPS
+#     geom = feat['geometry']
+#     props = feat['properties']
+#     props['MODELS'] = feat['models']['probsevere']['LINE01']
+#     # CRDS
+#     crds = geom['coordinates']
+#     lons, lats = np.rollaxis(np.array(crds), 2, 0)
+#     geometries = list()
+#     geometries.append(geom)
+#     geometries.append(dict(type="point", coordinates=[
+#                       np.mean(lons), np.mean(lats)]))
 
-    geometries.append(dict(type="MultiLineString", coordinates=get_storm_motion(
-        props['MOTION_SOUTH'], props['MOTION_EAST'], props['MEANWIND_1-3kmAGL'])))
-    # geom['track'] = get_storm_motion(
-    #     props['MOTION_SOUTH'], props['MOTION_EAST'], props['MEANWIND_1-3kmAGL'])
+#     geometries.append(dict(type="MultiLineString", coordinates=get_storm_motion(
+#         props['MOTION_SOUTH'], props['MOTION_EAST'], props['MEANWIND_1-3kmAGL'])))
+#     # geom['track'] = get_storm_motion(
+#     #     props['MOTION_SOUTH'], props['MOTION_EAST'], props['MEANWIND_1-3kmAGL'])
 
-    del feat['geometry']
-    feat['geometry'] = dict(type="GeometryCollection", geometries=geometries)
+#     del feat['geometry']
+#     feat['geometry'] = dict(type="GeometryCollection", geometries=geometries)
 
-    del feat['models']
-    return feat
+#     del feat['models']
+#     return feat
 
 
 class Fetch:
