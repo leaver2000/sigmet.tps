@@ -26,5 +26,4 @@ yarn-error.log*
 # /conf
 
 __pycache__
-data
 node_modules
