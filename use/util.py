@@ -1,5 +1,3 @@
-import json
-from pprint import pprint
 try:
     from dotenv import dotenv_values
     env = dotenv_values('.env')

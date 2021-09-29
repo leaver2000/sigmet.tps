@@ -6,9 +6,7 @@ dependencies:
   - pandas
   - matplotlib
   - basemap
-  # required for MMM-py degribing
+  # pygrib is required for MMM-py degribing
   - pygrib
-  # lxml is used for webscraping
   - lxml 
-  # pymongo is the connection to mongodb
   - pymongo 

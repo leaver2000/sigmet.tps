@@ -16,6 +16,6 @@ SHELL ["conda", "run", "-n", "production-env", "/bin/bash", "-c"]
 # The code to run when container is started:
 COPY ./modules ./modules
 COPY MRMSDataset.py .
-ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "production-env", "python", "MRMSDataset.py"]
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "production-env", "python", "local_data_manager.py"]
 # docker pull continuumio/miniconda3:4.10.3-alpine
 # docker build -t leaver/conda:0.3 .

@@ -11,9 +11,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from modules.util import Gex
-from modules.withMongo import read_all, post_all, post_collection, update_directory
-from modules.withMRMS import TileNames, Mosaic
+from use.util import Gex
+from use.mongo import read_all, insert_many, post_collection
+from use.withMRMS import TileNames, Mosaic
 # from modules.probsevere import ProbSevere
 
 DESIRED_LATRANGE = (20, 55)
@@ -76,15 +76,14 @@ class BaseProducts:
 
     def __init__(self, probsevere=None):
         self.probsevere = probsevere
-        collection = 'BASEPRODUCTS'
-
+        collection = 'BASEREQUEST'
         try:
             base_req = read_all(collection=collection)
 
             if len(base_req) == 0:
                 with open('base_products.json')as base_products:
                     base_req = json.load(base_products)['request']
-                    post_all(base_req, collection=collection)
+                    insert_many(base_req, collection='BASEREQUEST')
                     self.features = base_req
 
             else:
@@ -105,8 +104,6 @@ class BaseProducts:
             fp, vt = self._get_prods(feat)
             feat['filePath'] = fp
             feat['validTimes'].append(vt)
-
-        # pprint(self.features)
 
     def _get_prods(self, feat):
         page_dir = self.url+feat['urlPath']
@@ -198,7 +195,7 @@ class BaseProducts:
             with open(filename, 'rb') as tile:
                 post_collection(tile, collection='FILESERVER')
 
-        update_directory(self)
+        # update_directory(self)
         return
 
     def maintain_tmp_tree(self, instance):

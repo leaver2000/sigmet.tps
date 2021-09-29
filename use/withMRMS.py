@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 from PIL import Image, ImageChops
 # local modules
-from modules.mmmpy import MosaicTile, MosaicDisplay
-from modules.image_slicer import chop
+from use.mmmpy import MosaicTile, MosaicDisplay
+from use.image_slicer import chop
 
 ##############|  DEFAULT UTIL  |#################
 BGCOLOR = '#000000'
@@ -296,113 +296,113 @@ class TileNames:
         return (lat_deg, lon_deg)
 
 
-# class ProbSevere:
-#     def __init__(self, feature_collection=None):
-#         if feature_collection is not None:
-#             instance = feature_collection[0]
-#             validtime = instance[2]
+# # class ProbSevere:
+# #     def __init__(self, feature_collection=None):
+# #         if feature_collection is not None:
+# #             instance = feature_collection[0]
+# #             validtime = instance[2]
 
-#             self.features = list()
+# #             self.features = list()
 
-#             self.feature_collection = dict(version='3.0.1', type='FeatureCollection', validtime=validtime, features=self.features,
-#                                            product='ProbSevere:track', source="NOAA/NCEP Central Operations")
+# #             self.feature_collection = dict(version='3.0.1', type='FeatureCollection', validtime=validtime, features=self.features,
+# #                                            product='ProbSevere:track', source="NOAA/NCEP Central Operations")
 
-#             self.geometry_collection = dict(type="GeometryCollection")
+# #             self.geometry_collection = dict(type="GeometryCollection")
 
-#             self._iterate(feature_collection)
+# #             self._iterate(feature_collection)
 
-#             return
-#         else:
-#             pass
-#         return None
+# #             return
+# #         else:
+# #             pass
+# #         return None
 
-#     def _iterate(self, arr):
-#         for value in arr:
-#             # print(value)
-#             self.features.append(handle_feature(value[6]))
-
-
-# def get_storm_motion(mtn_s, mtn_e, mean_w):
-#     return [mtn_s, mtn_e, mean_w]
+# #     def _iterate(self, arr):
+# #         for value in arr:
+# #             # print(value)
+# #             self.features.append(handle_feature(value[6]))
 
 
-# def handle_feature(feat):
-#     # PROPS
-#     geom = feat['geometry']
-#     props = feat['properties']
-#     props['MODELS'] = feat['models']['probsevere']['LINE01']
-#     # CRDS
-#     crds = geom['coordinates']
-#     lons, lats = np.rollaxis(np.array(crds), 2, 0)
-#     geometries = list()
-#     geometries.append(geom)
-#     geometries.append(dict(type="point", coordinates=[
-#                       np.mean(lons), np.mean(lats)]))
-
-#     geometries.append(dict(type="MultiLineString", coordinates=get_storm_motion(
-#         props['MOTION_SOUTH'], props['MOTION_EAST'], props['MEANWIND_1-3kmAGL'])))
-#     # geom['track'] = get_storm_motion(
-#     #     props['MOTION_SOUTH'], props['MOTION_EAST'], props['MEANWIND_1-3kmAGL'])
-
-#     del feat['geometry']
-#     feat['geometry'] = dict(type="GeometryCollection", geometries=geometries)
-
-#     del feat['models']
-#     return feat
+# # def get_storm_motion(mtn_s, mtn_e, mean_w):
+# #     return [mtn_s, mtn_e, mean_w]
 
 
-class Fetch:
-    def __init__(self, base_products=None, save_loc=None):
-        self.baseurl = base_products['baseUrl']
-        self.features = base_products['layers']
-        self.query = base_products['query']
-        self.save_loc = save_loc
+# # def handle_feature(feat):
+# #     # PROPS
+# #     geom = feat['geometry']
+# #     props = feat['properties']
+# #     props['MODELS'] = feat['models']['probsevere']['LINE01']
+# #     # CRDS
+# #     crds = geom['coordinates']
+# #     lons, lats = np.rollaxis(np.array(crds), 2, 0)
+# #     geometries = list()
+# #     geometries.append(geom)
+# #     geometries.append(dict(type="point", coordinates=[
+# #                       np.mean(lons), np.mean(lats)]))
 
-        self.grib_data = list()
-        self.json_data = list()
+# #     geometries.append(dict(type="MultiLineString", coordinates=get_storm_motion(
+# #         props['MOTION_SOUTH'], props['MOTION_EAST'], props['MEANWIND_1-3kmAGL'])))
+# #     # geom['track'] = get_storm_motion(
+# #     #     props['MOTION_SOUTH'], props['MOTION_EAST'], props['MEANWIND_1-3kmAGL'])
 
-        for layer in self.features:
-            if layer['dataType'] == 'GRIB2':
-                self._get_grib2(layer)
-            if layer['dataType'] == 'JSON':
-                self._get_geojson(layer)
+# #     del feat['geometry']
+# #     feat['geometry'] = dict(type="GeometryCollection", geometries=geometries)
 
-    def _get_geojson(self, layer):
-        layer_directory = self.baseurl+layer['urlPath']
+# #     del feat['models']
+# #     return feat
 
-        page = pd.read_html(layer_directory+self.query)
-        layer_product = np.array(page)[0][2][0]
 
-        request.urlretrieve(layer_directory+layer_product,
-                            self.save_loc+layer_product)
+# class Fetch:
+#     def __init__(self, base_products=None, save_loc=None):
+#         self.baseurl = base_products['baseUrl']
+#         self.features = base_products['layers']
+#         self.query = base_products['query']
+#         self.save_loc = save_loc
 
-        validtime = re.search(RE_JSON_VALIDTIME, layer_product).group()[:-2]
+#         self.grib_data = list()
+#         self.json_data = list()
 
-        layer['validTime'] = validtime.replace("_", "-")
-        layer['filePath'] = self.save_loc+layer_product
+#         for layer in self.features:
+#             if layer['dataType'] == 'GRIB2':
+#                 self._get_grib2(layer)
+#             if layer['dataType'] == 'JSON':
+#                 self._get_geojson(layer)
 
-    def _validate_time(self, layer_prods=None):
+#     def _get_geojson(self, layer):
+#         layer_directory = self.baseurl+layer['urlPath']
 
-        for prods in layer_prods:
-            valid_time = re.search(RE_GRIB_VALIDTIME, prods[0]).group()[:-2]
+#         page = pd.read_html(layer_directory+self.query)
+#         layer_product = np.array(page)[0][2][0]
 
-            if int(valid_time[12:]) == 0:
+#         request.urlretrieve(layer_directory+layer_product,
+#                             self.save_loc+layer_product)
 
-                return (prods[0], valid_time)
-            else:
-                print('skipping non-zero interval')
-                continue
+#         validtime = re.search(RE_JSON_VALIDTIME, layer_product).group()[:-2]
 
-    def _get_grib2(self, layer):
-        layer_directory = self.baseurl+layer['urlPath']
-        page = pd.read_html(layer_directory+self.query)
+#         layer['validTime'] = validtime.replace("_", "-")
+#         layer['filePath'] = self.save_loc+layer_product
 
-        layer_product, validtime = self._validate_time(
-            layer_prods=np.array(*page)[3:])
+#     def _validate_time(self, layer_prods=None):
 
-        request.urlretrieve(layer_directory+layer_product,
-                            self.save_loc+layer_product)
+#         for prods in layer_prods:
+#             valid_time = re.search(RE_GRIB_VALIDTIME, prods[0]).group()[:-2]
 
-        layer['validTime'] = validtime
-        layer['filePath'] = self.save_loc+layer_product
-        self.grib_data.append(self.save_loc+layer_product)
+#             if int(valid_time[12:]) == 0:
+
+#                 return (prods[0], valid_time)
+#             else:
+#                 print('skipping non-zero interval')
+#                 continue
+
+#     def _get_grib2(self, layer):
+#         layer_directory = self.baseurl+layer['urlPath']
+#         page = pd.read_html(layer_directory+self.query)
+
+#         layer_product, validtime = self._validate_time(
+#             layer_prods=np.array(*page)[3:])
+
+#         request.urlretrieve(layer_directory+layer_product,
+#                             self.save_loc+layer_product)
+
+#         layer['validTime'] = validtime
+#         layer['filePath'] = self.save_loc+layer_product
+#         self.grib_data.append(self.save_loc+layer_product)

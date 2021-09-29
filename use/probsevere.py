@@ -1,5 +1,5 @@
 import numpy as np
-from modules.stormtrack import StormTrack
+from use.stormtrack import StormTrack
 stormy = StormTrack()
 
 
