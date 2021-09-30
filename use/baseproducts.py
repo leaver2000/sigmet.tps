@@ -205,7 +205,7 @@ class BaseProducts:
             return time()
 
         elif instance == 'STOP':
-            rmtree('tmp/', ignore_errors=False, onerror=None)
+            # rmtree('tmp/', ignore_errors=False, onerror=None)
             return time()
         # pass
     # avail = list()
