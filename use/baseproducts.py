@@ -15,7 +15,7 @@ from use.util import Gex
 from use.mongo import read_all, insert_many, post_collection
 from use.withMRMS import TileNames, Mosaic
 # from modules.probsevere import ProbSevere
-
+from use.probsevere import ProbSevere
 DESIRED_LATRANGE = (20, 55)
 DESIRED_LONRANGE = (-130, -60)
 TMP_RAW = 'tmp/raw/'
@@ -140,7 +140,17 @@ class BaseProducts:
     def prepare_and_process(self, dtype=None):
         # print(self.raw_json)
         if dtype == "JSON":
-            self._process_probsevere(filepath=self.raw_json['filePath'])
+            with open(self.raw_json['filePath'], 'r') as f:
+                fc = json.load(f)
+                vt = fc['validTime'][:-6].replace('_', '-')
+                feats = fc['features']
+                ps = ProbSevere(valid_time=vt, features=feats)
+                ps.feature_collection
+
+            # ps = ProbSevere(valid_time=vt, features=feats)
+            # pprint(ps.feature_collection)
+
+            # self._process_probsevere(filepath=self.raw_json['filePath'])
             return
 
         elif dtype == "GRIB2":

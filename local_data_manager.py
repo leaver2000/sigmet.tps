@@ -13,7 +13,7 @@ from pprint import pprint
 # from modules.withFetch import Fetch
 # from modules.useProcess import process_tiles, process_probsevere
 from use.baseproducts import BaseProducts
-from use.probsevere import ProbSevere
+# from use.probsevere import ProbSevere
 # from pprint import pprint
 import time
 
@@ -40,7 +40,7 @@ GLB_DATA = TMP_DATA+'*/*/*/*/'
 #     return
 
 # rmtree('tmp/', ignore_errors=False, onerror=None)
-ps = ProbSevere()
+# ps = ProbSevere()
 
 
 def ldm_controller():
@@ -75,7 +75,7 @@ def ldm_controller():
     #
     ########################################################
 
-    bp = BaseProducts(probsevere=ps)
+    bp = BaseProducts()
     # maintain_tmp_tree creates a new tmp tree dir for intermediate processing
     initial_timer = bp.maintain_tmp_tree('START')
     #####################|  COLLECT   |#####################
@@ -92,7 +92,7 @@ def ldm_controller():
     # to handle the data processing required to render the png images.
     ###############################################################
     intermediate_timer = time.time()
-    bp.prepare_and_process(dtype='JSON')
+    # bp.prepare_and_process(dtype='JSON')
     bp.prepare_and_process(dtype='GRIB2')
     print(f'data processing accomplished in: \
             {round(time.time() - intermediate_timer)} seconds')
