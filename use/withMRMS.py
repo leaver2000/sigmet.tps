@@ -154,7 +154,8 @@ class Mosaic:
             x = _x+tile.row
             y = _y+tile.column
             # setting & making the path
-            path = f'{tmp}{validtime}/{product}/{zoom}/{x}'
+            # print(validtime)
+            path = f'{tmp}{product}/{validtime}/{zoom}/{x}'
             os.makedirs(path, exist_ok=True)
             # setting & saving the new tile
             filename = f'{path}/{y}.png'

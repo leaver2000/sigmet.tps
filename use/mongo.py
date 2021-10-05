@@ -12,9 +12,8 @@ db = client.sigmet
 # *          DATABASE COLLECTIONS
 # ?____________________________________________
 fs = GridFS(db)  # ? FILESERVER COLLECTION
-ps = db.probsevere  # ? PROBSEVERE COLLECTION
-br = db.base_requests  # ? PRODUCT REQUEST METADATA
-bp = db.base_products  # ? PRODUCT DIRECTORY METADATA
+ps = db.probSevere  # ? PROBSEVERE COLLECTION
+bp = db.baseProducts  # ? PRODUCT DIRECTORY METADATA
 
 """
 base_requests:
@@ -32,10 +31,10 @@ to the client side webapplication
 """
 
 
-def switch_collection(collection):
+def switch(collection):
     try:
         return {
-            'BASEREQUEST': br,
+            # 'BASEREQUEST': br,
             'BASEPRODUCT': bp,
             'PROBSEVERE': ps,
         }[collection]
@@ -44,9 +43,9 @@ def switch_collection(collection):
         return None
 
 
-def update_collection(data, collection=None):
+def update_collection(data, collection=str):
     if collection is not None:
-        col = switch_collection(collection)
+        col = switch(collection)
         print(data)
         # col.update_someStuff()
         return
@@ -54,55 +53,35 @@ def update_collection(data, collection=None):
         print('a collection must be specified')
 
 
-def post_collection(data, collection=None):
+class Update:
+    def __init__(self, data):
+        for d in data:
+            del d['urlPath']
+            del d['filePath']
 
-    if collection == 'FILESERVER':
-        filename = re.search(r"(?<=tmp/data/)(.*)", data.name).group()
-        f = fs.new_file(filename=filename)
-        try:
-            f.write(data)
+        self.data = data
+        return None
 
-        finally:
-            f.close()
+    def gridfs(self, data):
+        for path in data:
+            with open(path, 'rb') as fp:
+                filename = re.search(r"(?<=tmp/data/)(.*)", fp.name).group()
+                f = fs.new_file(filename=filename)
+                try:
+                    f.write(data)
+                finally:
+                    f.close()
 
-    elif collection is not None:
-        col = switch_collection(collection)
-        try:
-            ps.insert_one(data)
-        except:
-            print('there was an error posting the colleciton')
+    def probsevere(self, data):
+        ps.insert_one(data)
 
-        return
-    else:
-        print('a collection must be specified')
-
-    # if collection is None:
-    #     print('a collection was not specified')
-
-    # elif collection == 'PROBSEVERE':
-    #     try:
-    #         _id = ps.insert_one(data).inserted_id
-    #     except:
-    #         print('there was an error posting probSevere data to mongoDB')
-
-    # elif collection == 'FILESERVER':
-    #     filename = re.search(r"(?<=tmp/data/)(.*)", data.name).group()
-    #     f = fs.new_file(filename=filename)
-    #     try:
-    #         f.write(data)
-
-    #     finally:
-    #         f.close()
-    # elif collection == 'test':
-    #     print(data)
-    # else:
-    #     print(
-    #         f'there is currently no support for the specified collection: {collection}')
+    def close(self):
+        bp.insert_many(self.data)
 
 
 def insert_many(data, collection=None):
-    col = switch_collection(collection)
-    col.insert_many(data)
+    col = switch(collection)
+    return col.insert_many(data)
 
 
 def read_all(collection=None, query=None):
@@ -112,7 +91,7 @@ def read_all(collection=None, query=None):
     - BASEPRODUCTS
     - PROBSEVERE
     """
-    col = switch_collection(collection)
+    col = switch(collection)
     data = list()
     for item in col.find():
         data.append(item)

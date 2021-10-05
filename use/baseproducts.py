@@ -1,10 +1,10 @@
 import os
 import re
-from time import time
+# from time import time
 from glob import glob
 import json
-from shutil import rmtree
-from pprint import pprint
+# from shutil import rmtree
+# from pprint import pprint
 from urllib import request
 
 import numpy as np
@@ -12,20 +12,24 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from use.util import Gex
-from use.mongo import read_all, insert_many, post_collection
+# from use.mongo import read_all, insert_many, post_collection
 from use.withMRMS import TileNames, Mosaic
 # from modules.probsevere import ProbSevere
 from use.probsevere import ProbSevere
 DESIRED_LATRANGE = (20, 55)
 DESIRED_LONRANGE = (-130, -60)
-TMP_RAW = 'tmp/raw/'
-TMP_IMG = 'tmp/img/'
-TMP_DATA = 'tmp/data/'
-directories = (TMP_RAW, TMP_IMG, TMP_DATA)
+DIRS = ('tmp/img/', 'tmp/data/')
+regex = {
+    'NEXRAD': r"(?!.*_)(.*)(?=.grib2.gz)",
+    'PROBSEVERE': r"(?<=MRMS_PROBSEVERE_)(.*)(?=.json)"
+}
 
-##############|  REGEX   |#################
-RE_DATA = r"(?<=tmp/data/)(.*)"
-GLB_DATA = TMP_DATA+'*/*/*/*/'
+
+# class Product:
+#     validtime = None
+
+
+# p = Product()
 
 
 class BaseProducts:
@@ -72,27 +76,12 @@ class BaseProducts:
 
     url = "https://mrms.ncep.noaa.gov/data/"
     query = "?C=M;O=D"
-    # features = list()
+    valid_time = {}
+    fileservice = glob(os.path.join('tmp/data/*/*/*/*/', '*.png'))
 
-    def __init__(self, probsevere=None):
-        self.probsevere = probsevere
-        collection = 'BASEREQUEST'
-        try:
-            base_req = read_all(collection=collection)
-
-            if len(base_req) == 0:
-                with open('base_products.json')as base_products:
-                    base_req = json.load(base_products)['request']
-                    insert_many(base_req, collection='BASEREQUEST')
-                    self.features = base_req
-
-            else:
-                self.features = base_req
-
-            return
-
-        except:
-            print('sum tin wong')
+    def __init__(self):
+        with open('baseRequest.json')as br:
+            self.features = json.load(br)['request']
 
         return None
 
@@ -103,62 +92,63 @@ class BaseProducts:
         for feat in self.features:
             fp, vt = self._get_prods(feat)
             feat['filePath'] = fp
-            feat['validTimes'].append(vt)
+            feat['validTime'] = vt
 
     def _get_prods(self, feat):
         page_dir = self.url+feat['urlPath']
         page = pd.read_html(page_dir+self.query)
+        prodType = feat['prodType']
         fn, vt = self._validate_time(
-            layer_prods=np.array(*page)[3:], dtype=feat['dtype'])
+            layer_prods=np.array(*page)[3:], prodType=prodType)
 
         file_path = self.save_loc+fn
 
         request.urlretrieve(page_dir+fn, file_path)
 
-        if feat['dtype'] == 'JSON':
-            validtime = vt.replace("_", "-")
+        if feat['prodType'] == 'PROBSEVERE':
             self.raw_json = feat
-        else:
-            validtime = vt
-
+        validtime = {
+            "PROBSEVERE": vt.replace("_", "-"),
+            "NEXRAD": vt
+        }[prodType]
         # validtime = vt.replace("_", "-") if feat['dtype'] == 'JSON' else vt
 
         return file_path, validtime
 
-    def _validate_time(self, layer_prods=None, dtype=None):
-
-        regex = Gex.grib_vt if dtype == 'GRIB2' else Gex.json_vt
+    def _validate_time(self, layer_prods=None, prodType=None):
         for prods in layer_prods:
-            valid_time = re.search(regex, prods[0]).group()[:-2]
-
+            valid_time = re.search(regex[prodType], prods[0]).group()[:-2]
             if int(valid_time[12:]) == 0:
-                return (prods[0], valid_time)
+                vt = valid_time \
+                    if prodType == 'NEXRAD' \
+                    else valid_time.replace('_', '-')
+                return (prods[0], vt)
             else:
                 continue
     ######################## |  PREPARE AND PROCESS STAGE    | ####################################
 
-    def prepare_and_process(self, dtype=None):
-        # print(self.raw_json)
-        if dtype == "JSON":
-            with open(self.raw_json['filePath'], 'r') as f:
-                fc = json.load(f)
-                vt = fc['validTime'][:-6].replace('_', '-')
-                feats = fc['features']
-                ps = ProbSevere(valid_time=vt, features=feats)
-                ps.feature_collection
+    def prepare(self):
+        for feat in self.features:
+            featType = feat['prodType']
+            vt = feat['validTime']
+            fp = feat['filePath']
 
-            # ps = ProbSevere(valid_time=vt, features=feats)
-            # pprint(ps.feature_collection)
+            if featType == "PROBSEVERE":
+                with open(fp, 'r') as f:
+                    fc = json.load(f)
+                    # The probsevere features are passed to the probsevere module
+                    ps = ProbSevere(valid_time=vt, features=fc['features'])
+                    # The probsevere feature colleciton is attached to the baseproduct class.
+                    # The ldm can then access the probsevere feature collection via
+                    # bp = BaseProducts()
+                    # bp.prep()
+                    # bp.probsevere
+                    self.probsevere = ps.feature_collection
 
-            # self._process_probsevere(filepath=self.raw_json['filePath'])
-            return
-
-        elif dtype == "GRIB2":
-            features = [
-                feat for feat in self.features if feat["dtype"] == dtype]
-            for feat in features:
-                self._process_tiles(zoom=5, gribpath=feat['filePath'], validtime=feat['validTimes'][-1],
-                                    product=feat['name'], dirs=(TMP_IMG, TMP_DATA))
+            elif featType == "NEXRAD":
+                self._process_tiles(zoom=5, gribpath=fp,
+                                    validtime=vt,
+                                    product=feat['name'], dirs=DIRS)
 
     def _process_tiles(self, gribpath=None, zoom=None,
                        validtime=None, product=None, dirs=None):
@@ -180,6 +170,7 @@ class BaseProducts:
         file = display.render_source(filename=img_source)
 
         # using the provided tile names slice the Mosaic image into a slippy map directory
+
         display.crop_tiles(file=file, tmp=data, product=product,
                            validtime=validtime, zoom=zoom, tile_names=tn)
         plt.close('all')
@@ -194,85 +185,16 @@ class BaseProducts:
 
     ######################## |  PREPARE AND PROCESS STAGE    | ####################################
 
-    def commit_and_post(self):
-        # only the probSevere JSON data is
-        # passed to this function.
-        # post_collection(data, collection='PROBSEVERE')
-        post_collection(self.probsevere.feature_collection,
-                        collection='PROBSEVERE')
+    # def commit_and_post(self):
+    #     # only the probSevere JSON data is
+    #     # passed to this function.
+    #     # post_collection(data, collection='PROBSEVERE')
+    #     post_collection(self.probsevere.feature_collection,
+    #                     collection='PROBSEVERE')
 
-        for filename in glob(os.path.join(GLB_DATA, '*.png')):
-            with open(filename, 'rb') as tile:
-                post_collection(tile, collection='FILESERVER')
+    #     for filename in glob(os.path.join(GLB_DATA, '*.png')):
+    #         with open(filename, 'rb') as tile:
+    #             post_collection(tile, collection='FILESERVER')
 
-        # update_directory(self)
-        return
-
-    def maintain_tmp_tree(self, instance):
-        if instance == 'START':
-            for folder in directories:
-                os.makedirs(folder, exist_ok=True)
-            return time()
-
-        elif instance == 'STOP':
-            # rmtree('tmp/', ignore_errors=False, onerror=None)
-            return time()
-        # pass
-    # avail = list()
-    # # print()
-    # for prod in bp.features:
-    #     validtime = prod['validTimes'][-1]
-        # if prod['dtype'] == 'GRIB2':
-        #     process_tiles(zoom=5, gribpath=prod['filePath'], validtime=validtime,
-        #                   product=prod['name'], dirs=(TMP_IMG, TMP_DATA))
-
-        # elif prod['dtype'] == 'JSON':
-        #     ps = process_probsevere(filepath=prod['filePath'])
-        #     pass
-        # a = dict(layerName=prod['name'], validTime=validtime)
-        # avail.append(a)
-
-    # return ps.feature_collection
-# base = BaseProducts()
-# print(base)
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import pandas as pd
-# from modules.withMRMS import TileNames, Mosaic, ProbSevere
-
-# DESIRED_LATRANGE = (20, 55)
-# DESIRED_LONRANGE = (-130, -60)
-
-
-# def process_tiles(gribpath=None, gribfile=None, zoom=None,
-#                   validtime=None, product=None, dirs=None):
-
-#     img, data = dirs
-#     dpi = np.multiply(150, zoom)
-#     img_source = f'{product}-{validtime}-{zoom}'
-
-#     # set zxy params via the TileNames Class
-#     tn = TileNames(latrange=DESIRED_LATRANGE,
-#                    lonrange=DESIRED_LONRANGE,
-#                    zooms=zoom, verbose=False)
-
-#     # wrapper for the MMM-py MosaicDisplay class
-#     display = Mosaic(gribfile=gribpath, dpi=dpi, work_dir=img,
-#                      latrange=tn.latrange, lonrange=tn.lonrange)
-
-#     # wrapper for the MMM-py plot_horiz function
-#     file = display.render_source(filename=img_source)
-
-#     # using the provided tile names slice the Mosaic image into a slippy map directory
-#     display.crop_tiles(file=file, tmp=data, product=product,
-#                        validtime=validtime, zoom=zoom, tile_names=tn)
-#     plt.close('all')
-
-
-# def process_probsevere(filepath=None):
-#     if filepath is None:
-#         print('a file path was not provided')
-#     else:
-#         with open(filepath, 'rb') as f:
-#             fc = np.array(pd.read_json(f))
-#             return ProbSevere(feature_collection=fc)
+    #     # update_directory(self)
+    #     return

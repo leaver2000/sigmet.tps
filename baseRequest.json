@@ -2,24 +2,30 @@
     "request":[{
         "name":"CREF",
         "longName":"MRMS Merged Composite Reflectivity",
-        "dtype":"GRIB2",
+        "prodType":"NEXRAD",
+        "subType":"MOSAIC",
         "urlPath":"2D/MergedReflectivityQCComposite/",
-        "description":"",
-        "validTimes":[]
+        "filePath":null,
+        "validTime":null
+
     },{
         "name":"VIL",
         "longName":"MRMS HighRes Vertically Intergrated Liqud",
-        "dtype":"GRIB2",
+        
+        "prodType":"NEXRAD",
+        "subType":"MOSAIC",
         "urlPath":"2D/LVL3_HighResVIL/",
-        "description":"",
-        "validTimes":[]
+        "filePath":null,
+        "validTime":null
+
     },{
         "name":"probSevere",
         "longName":"MRMS ProbSevere V3.01",
-        "dtype":"JSON",
+        "prodType":"PROBSEVERE",
+        "subType":"GeoJSON",
         "urlPath":"ProbSevere/PROBSEVERE/",
-        "description":"",
-        "validTimes":[]
+        "filePath":null,
+        "validTime":null
     }]
 }
 

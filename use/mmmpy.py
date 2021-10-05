@@ -193,21 +193,21 @@ class MosaicTile(object):
         #     except:
         #         print('No valid filename provided')
 
-    def help(self):
-        """Basic printout of module capabilities"""
-        _method_header_printout('help')
-        print('To use: instance = MosaicTile(filepath+name).')
-        print('Available read methods:')
-        print('    read_mosaic_netcdf(<FILE>):')
-        print('    read_mosaic_binary(<FILE>):')
-        print('    read_mosaic_grib(<FILE(S)>):')
-        print('Other available methods:')
-        print('diag(), get_comp(),')
-        print('subsection(), write_mosaic_binary(), output_composite()')
-        print('To plot: display = MosaicDisplay(tile_instance)')
-        print('Available plotting methods: plot_horiz(), plot_vert(),')
-        print('                            three_panel_plot()')
-        _method_footer_printout()
+    # def help(self):
+    #     """Basic printout of module capabilities"""
+    #     _method_header_printout('help')
+    #     print('To use: instance = MosaicTile(filepath+name).')
+    #     print('Available read methods:')
+    #     print('    read_mosaic_netcdf(<FILE>):')
+    #     print('    read_mosaic_binary(<FILE>):')
+    #     print('    read_mosaic_grib(<FILE(S)>):')
+    #     print('Other available methods:')
+    #     print('diag(), get_comp(),')
+    #     print('subsection(), write_mosaic_binary(), output_composite()')
+    #     print('To plot: display = MosaicDisplay(tile_instance)')
+    #     print('Available plotting methods: plot_horiz(), plot_vert(),')
+    #     print('                            three_panel_plot()')
+    #     _method_footer_printout()
 
 #     def read_mosaic_netcdf(self, full_path_and_filename, verbose=False):
 #         """
