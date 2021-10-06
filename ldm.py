@@ -2,24 +2,25 @@
 import os
 from shutil import rmtree
 from use.baseproducts import BaseProducts
-from use.mongo import Update
+from use.router import Router
 import time
-
+# local data manager
 
 ##############|  LocalDirectory   |#################
+
+
 class LocalDirectory:
     root = 'tmp/'
     raw = f'{root}raw/'
     img = f'{root}img/'
     data = f'{root}data/'
-    glob = f'{root}*/*/*/*/'
-
-    def tree(self):
-        return (self.raw, self.img, self.data)
+    dirs = (raw, img, data)
+    # def tree(self):
+    #     return (self.raw, self.img, self.data)
 
     def manage(self, instance):
         if instance == 'START':
-            for folder in self.tree():
+            for folder in self.dirs:
                 os.makedirs(folder, exist_ok=True)
             return time.time()
 
@@ -28,11 +29,7 @@ class LocalDirectory:
             return time.time()
 
 
-##############|  REGEX   |#################
-# RE_DATA = r"(?<=tmp/data/)(.*)"
-
-
-def controller():
+def controller(verbose=False):
     """
     # Steps
 
@@ -59,54 +56,59 @@ def controller():
     #
     ########################################################
 
-    bp = BaseProducts()
     ld = LocalDirectory()
+    bp = BaseProducts(dirs=ld.dirs)
     # maintain_tmp_tree creates a new tmp tree dir for intermediate processing
     initial_timer = ld.manage('START')
     #####################|  COLLECT   |#####################
     # call the baseproducts fetch api to collect the raw data
     ########################################################
-    intermediate_timer = time.time()
-    # bp.collect(save_loc=ld.raw)
-    bp.collect(save_loc='tmp/raw/')
+    if verbose:
+        intermediate_timer = time.time()
 
-    print(f'data collection accomplished in: \
-            {round(time.time() - intermediate_timer)} seconds')
+    bp.collect()
+
+    if verbose:
+        print(f'data collection accomplished in: \
+                {round(time.time() - intermediate_timer)} seconds')
 
     ######################|  PREPARE & PROCESS  |#################
     # call the baseproducts prepare_and_process function.
     # this stage relies heavily on the withMRMS module and MMM-py
     # to handle the data processing required to render the png images.
     ###############################################################
-    intermediate_timer = time.time()
+        intermediate_timer = time.time()
 
-    bp.prepare()  # calls to process the probsevere data
-    # and returns the updated probsevere feature colleciton
-    # bp.prep(prodType='PROBSEVERE')
-    # bp.prep(prodType='NEXRAD')
+    bp.process()
 
-    print(f'data processing accomplished in: \
-            {round(time.time() - intermediate_timer)} seconds')
+    if verbose:
+        print(f'data processing accomplished in: \
+                {round(time.time() - intermediate_timer)} seconds')
 
+        intermediate_timer = time.time()
     #######################|  COMMIT & POST   |####################
     #
     ###############################################################
-    intermediate_timer = time.time()
 
-    up = Update(bp.features)
+    route = Router(bp.features)
+    route.probsevere(bp.probsevere)
+    route.gridfs(bp.fileservice)
 
-    up.probsevere(bp.probsevere)
-    up.gridfs(bp.fileservice)
-
-    up.close()
-
-    print(f'data writing took \
-            {round(time.time() - intermediate_timer)} seconds')
+    route.close()
+    if verbose:
+        print(f'data writing took \
+                {round(time.time() - intermediate_timer)} seconds')
 
     # once the database is updated maintain_tmp_tree then removes tmp/ and all associated files.
     end_timer = ld.manage('STOP')
-    print(f'total processing accomplished in: \
-            {round(end_timer - initial_timer)} seconds')
+    if verbose:
+        print(f'total processing accomplished in: \
+                {round(end_timer - initial_timer)} seconds')
 
 
-controller()
+# class Name:
+#     first = 'billy'
+
+
+# print(Name.first)
+controller(verbose=True)

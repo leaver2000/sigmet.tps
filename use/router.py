@@ -1,9 +1,19 @@
-from use.util import Gex, Env
+# from use.util import Gex, Env
 from pymongo import MongoClient
 from gridfs import GridFS
 import re
+try:
+    from dotenv import dotenv_values
+    env = dotenv_values('.env')
+    username = env['USERNAME']
+    password = env['PASSWORD']
+    print('using dev env')
+except:
+    print('failed to load dotenv')
+    pass
 ##############|  MONGODB   |#################
-client = MongoClient(Env.url)
+url = f"mongodb+srv://{username}:{password}@wild-blue-yonder.jy40m.mongodb.net/database?retryWrites=true&w=majority"
+client = MongoClient(url)
 
 ##############|  Database   |#################
 db = client.sigmet
@@ -31,29 +41,7 @@ to the client side webapplication
 """
 
 
-def switch(collection):
-    try:
-        return {
-            # 'BASEREQUEST': br,
-            'BASEPRODUCT': bp,
-            'PROBSEVERE': ps,
-        }[collection]
-    except:
-        print('an invalid collection was used')
-        return None
-
-
-def update_collection(data, collection=str):
-    if collection is not None:
-        col = switch(collection)
-        print(data)
-        # col.update_someStuff()
-        return
-    else:
-        print('a collection must be specified')
-
-
-class Update:
+class Router:
     def __init__(self, data):
         for d in data:
             del d['urlPath']
@@ -77,6 +65,28 @@ class Update:
 
     def close(self):
         bp.insert_many(self.data)
+
+
+def switch(collection):
+    try:
+        return {
+            # 'BASEREQUEST': br,
+            'BASEPRODUCT': bp,
+            'PROBSEVERE': ps,
+        }[collection]
+    except:
+        print('an invalid collection was used')
+        return None
+
+
+def update_collection(data, collection=str):
+    if collection is not None:
+        col = switch(collection)
+        print(data)
+        # col.update_someStuff()
+        return
+    else:
+        print('a collection must be specified')
 
 
 def insert_many(data, collection=None):
