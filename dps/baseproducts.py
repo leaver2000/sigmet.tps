@@ -13,9 +13,12 @@ import matplotlib.pyplot as plt
 
 
 # from use.mongo import read_all, insert_many, post_collection
-from use.withMRMS import TileNames, Mosaic
+from dps.withMRMS import TileNames, Mosaic
 # from modules.probsevere import ProbSevere
-from use.probsevere import ProbSevere
+from dps.probsevere import ProbSevere
+from dps.env import ld
+
+
 DESIRED_LATRANGE = (20, 55)
 DESIRED_LONRANGE = (-130, -60)
 
@@ -70,13 +73,15 @@ class BaseProducts:
     url = "https://mrms.ncep.noaa.gov/data/"
     query = "?C=M;O=D"
     valid_time = {}
-    raw = None
-    img = None
-    data = None
-    fileservice = glob(os.path.join(f'{data}*/*/*/*/', '*.png'))
+    # raw = None
+    # img = None
+    # data = None
+    # fileservice = glob(os.path.join(f'{data}*/*/*/*/', '*.png'))
 
-    def __init__(self, dirs=None):
-        self.raw, self.img, self.data = dirs
+    def __init__(self):
+        # self.fil
+        # self.raw, self.img, self.data = dirs
+
         with open('baseRequest.json')as br:
             self.features = json.load(br)['request']
 
@@ -88,7 +93,7 @@ class BaseProducts:
         for feat in self.features:
             fp, vt = self._retrieve_products(feat)
             feat['filePath'] = fp
-            feat['validTime'] = vt
+            feat['validTimes'] = vt
 
     def _retrieve_products(self, feat):
         pageDir = self.url+feat['urlPath']
@@ -98,7 +103,7 @@ class BaseProducts:
 
         fn, vt = self._validate_products(prods=prods, prodType=prodType)
 
-        filePath = self.raw+fn  # f'{self.raw}{fn}'  # self.save_loc+fn
+        filePath = ld.raw+fn  # f'{self.raw}{fn}'  # self.save_loc+fn
 
         request.urlretrieve(pageDir+fn, filePath)
 
@@ -125,7 +130,7 @@ class BaseProducts:
     def process(self):
         for feat in self.features:
             featType = feat['prodType']
-            vt = feat['validTime']
+            vt = feat['validTimes']
             fp = feat['filePath']
 
             if featType == "PROBSEVERE":
@@ -153,7 +158,7 @@ class BaseProducts:
                        zooms=zoom, verbose=False)
 
         # wrapper for the MMM-py MosaicDisplay class
-        display = Mosaic(gribfile=gribpath, dpi=dpi, work_dir=self.img,
+        display = Mosaic(gribfile=gribpath, dpi=dpi, work_dir=ld.img,
                          latrange=tn.latrange, lonrange=tn.lonrange)
 
         # wrapper for the MMM-py plot_horiz function
@@ -161,6 +166,6 @@ class BaseProducts:
 
         # using the provided tile names slice the Mosaic image into a slippy map directory
 
-        display.crop_tiles(file=file, tmp=self.data, product=product,
+        display.crop_tiles(file=file, tmp=ld.data, product=product,
                            validtime=validtime, zoom=zoom, tile_names=tn)
         plt.close('all')

@@ -6,7 +6,7 @@
         "subType":"MOSAIC",
         "urlPath":"2D/MergedReflectivityQCComposite/",
         "filePath":null,
-        "validTime":null
+        "validTimes":null
 
     },{
         "name":"VIL",
@@ -16,7 +16,7 @@
         "subType":"MOSAIC",
         "urlPath":"2D/LVL3_HighResVIL/",
         "filePath":null,
-        "validTime":null
+        "validTimes":null
 
     },{
         "name":"probSevere",
@@ -25,7 +25,7 @@
         "subType":"GeoJSON",
         "urlPath":"ProbSevere/PROBSEVERE/",
         "filePath":null,
-        "validTime":null
+        "validTimes":null
     }]
 }
 

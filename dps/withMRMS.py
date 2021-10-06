@@ -1,16 +1,16 @@
 import re
 import os
 #  fetch dependicies
-from urllib import request
-import pandas as pd
-#
+# from urllib import request
+# import pandas as pd
+# #
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 from PIL import Image, ImageChops
 # local modules
-from use.mmmpy import MosaicTile, MosaicDisplay
-from use.image_slicer import chop
+from dps.mmmpy import MosaicTile, MosaicDisplay
+from dps.image_slicer import chop
 
 ##############|  DEFAULT UTIL  |#################
 BGCOLOR = '#000000'
