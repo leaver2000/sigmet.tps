@@ -4,10 +4,13 @@ from pymongo import MongoClient
 from gridfs import GridFS
 import re
 from dps.env import url
+import json
 # import base64
 # import bson
 from time import time
-
+from datetime import datetime, time
+import pandas as pd
+from urllib import request
 # ?____________________________________________
 # *
 # *                 DATABASE
@@ -37,16 +40,28 @@ Contains the database metadata ie:
 what products and valid times are available
 to the client side webapplication
 """
+# [A-Z]+?(?=-)
+#(?<=[A-Z]-)(.*)
+# ([A-Z]+?(?=-) )  [(?<=[A-Z]-)(.*)]
+
+# def parse_collection_name(container,collection):
+#     col = re.search(r".+?(?=.files)", collection)
+#     if col is not None:
+#         name,validtime =col.group().split('-',1)
+#         print(validtime)
+#         try:
+#             container[name]+=[validtime]
+#         except:
+#             container[name]=[validtime]
 
 
-def test():
-    print(db.list_collection_names())
-    for collection in db.list_collection_names():
-        # gex = r".+?(?=.files|.chunks)"
-        col = re.search(r".+?(?=.files)", collection)
-        if col is not None:
-            a = col.group()
-            print(a, str(time())[:4])
+# url = "https://mrms.ncep.noaa.gov/data/"
+# query = "?C=M;O=D"
+# regex = {
+#     'NEXRAD': r"(?!.*_)(.*)(?=.grib2.gz)",
+#     'PROBSEVERE': r"(?<=MRMS_PROBSEVERE_)(.*)(?=.json)"
+# }
+
 
 
 class Router:
@@ -64,10 +79,10 @@ class Router:
 
     def _parse(self, filepath):
         gex = r"(?<=tmp/data/)(.*)(?=/[0-9]/[0-9]/[0-9])(.*)"
-        prod_vt, zxypng = re.search(gex, filepath).groups()
+        prod_vt, filename = re.search(gex, filepath).groups()
         collection = prod_vt.replace('/', '-')
-        filename = zxypng[1:]
-        return collection, filename
+        # filename = zxypng[1:]
+        return collection, filename[1:]
 
     def probsevere(self, data):
         ps.insert_one(data)

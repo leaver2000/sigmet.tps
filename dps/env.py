@@ -5,8 +5,8 @@ from time import time
 try:
     from dotenv import dotenv_values
     env = dotenv_values('.env')
-    username = env['USERNAME']
-    password = env['PASSWORD']
+    username = env['MONGO_USER']
+    password = env['MONGO_PASSWORD']
     print('mongodb username and password loaded from dotenv')
 except:
     print('failed to load dotenv')
