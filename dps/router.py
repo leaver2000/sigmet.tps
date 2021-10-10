@@ -4,6 +4,9 @@ from pymongo import MongoClient
 from gridfs import GridFS
 import re
 from dps.env import url
+# import base64
+# import bson
+from time import time
 
 # ?____________________________________________
 # *
@@ -17,7 +20,7 @@ db = client.sigmet
 # *               COLLECTIONS
 # ?____________________________________________
 bp = db.baseProducts  # ? PRODUCT DIRECTORY METADATA
-gfs = GridFS(db)  # ? FILESERVER COLLECTION
+# ? FILESERVER COLLECTION
 ps = db.probSevere  # ? PROBSEVERE COLLECTION
 
 """
@@ -36,17 +39,35 @@ to the client side webapplication
 """
 
 
+def test():
+    print(db.list_collection_names())
+    for collection in db.list_collection_names():
+        # gex = r".+?(?=.files|.chunks)"
+        col = re.search(r".+?(?=.files)", collection)
+        if col is not None:
+            a = col.group()
+            print(a, str(time())[:4])
+
+
 class Router:
 
-    def gridfs(self, data):
-        for path in data:
-            with open(path, 'rb') as fp:
-                filename = re.search(r"(?<=tmp/data/)(.*)", fp.name).group()
-                f = gfs.new_file(filename=filename)
+    def gridfs(self, paths):
+        for path in paths:
+            with open(path, 'rb') as img:
+                col, fn = self._parse(img.name)
+                gfs = GridFS(db, collection=col)
+                f = gfs.new_file(filename=fn)
                 try:
-                    f.write(fp)
+                    f.write(img)
                 finally:
                     f.close()
+
+    def _parse(self, filepath):
+        gex = r"(?<=tmp/data/)(.*)(?=/[0-9]/[0-9]/[0-9])(.*)"
+        prod_vt, zxypng = re.search(gex, filepath).groups()
+        collection = prod_vt.replace('/', '-')
+        filename = zxypng[1:]
+        return collection, filename
 
     def probsevere(self, data):
         ps.insert_one(data)
@@ -54,6 +75,7 @@ class Router:
     def done(self, features):
         # * itterating over all of the newly created base_product features
         for d in features:
+            print(d)
             name = d['name']
             vt = d['validTimes']
 

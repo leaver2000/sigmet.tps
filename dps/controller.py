@@ -2,6 +2,8 @@ from dps.baseproducts import BaseProducts
 from dps.router import Router
 from dps.env import ld
 import time
+import os
+from glob import glob
 
 
 def controller(verbose=False):
@@ -43,7 +45,7 @@ def controller(verbose=False):
     bp.collect()
 
     if verbose:
-        print(f'data collection accomplished in: \
+        print(f'data collection accomplished in: \n\
                 {round(time.time() - intermediate_timer)} seconds')
 
     ######################|  PREPARE & PROCESS  |#################
@@ -52,7 +54,7 @@ def controller(verbose=False):
     # to handle the data processing required to render the png images.
     ###############################################################
         intermediate_timer = time.time()
-        print('begining to process raw data')
+        print('processing raw MRMS data')
 
     bp.process()
 
@@ -68,7 +70,8 @@ def controller(verbose=False):
     # print(bp.fileservice)
     route = Router()
     route.probsevere(bp.probsevere)
-    route.gridfs(ld.fileservice)
+    # print(glob(os.path.join('tmp/data/*/*/*/*/', '*.png')))
+    route.gridfs(glob(os.path.join('tmp/data/*/*/*/*/', '*.png')))
     route.done(bp.features)
 
     if verbose:
@@ -80,3 +83,5 @@ def controller(verbose=False):
     if verbose:
         print(f'total processing accomplished in: \
                 {round(end_timer - initial_timer)} seconds')
+
+    return None

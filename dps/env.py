@@ -1,7 +1,7 @@
 import os
 from glob import glob
 from time import time
-from shutil import rmtree
+
 try:
     from dotenv import dotenv_values
     env = dotenv_values('.env')
@@ -31,7 +31,7 @@ class LocalDirectory:
             return time()
 
         elif instance == 'STOP':
-            rmtree(self.root, ignore_errors=False, onerror=None)
+            # rmtree(self.root, ignore_errors=False, onerror=None)
             return time()
 
 
