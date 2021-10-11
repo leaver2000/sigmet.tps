@@ -41,7 +41,7 @@ what products and valid times are available
 to the client side webapplication
 """
 # [A-Z]+?(?=-)
-#(?<=[A-Z]-)(.*)
+# (?<=[A-Z]-)(.*)
 # ([A-Z]+?(?=-) )  [(?<=[A-Z]-)(.*)]
 
 # def parse_collection_name(container,collection):
@@ -62,20 +62,36 @@ to the client side webapplication
 #     'PROBSEVERE': r"(?<=MRMS_PROBSEVERE_)(.*)(?=.json)"
 # }
 
+class DatabaseRoutes:
+    def gridfs(self, paths):
+        print(paths)
+        pass
 
 
 class Router:
+    def get_gridfs(self, prod, vt):
+        col = f'{prod}-{vt}'
+
+        files = GridFS(db, collection=f'{col}.files')
+        chunks = GridFS(db, collection=f'{col}.chunks')
+
+        # print()
+        return (files, chunks)
 
     def gridfs(self, paths):
+        # arr = []
         for path in paths:
             with open(path, 'rb') as img:
                 col, fn = self._parse(img.name)
                 gfs = GridFS(db, collection=col)
                 f = gfs.new_file(filename=fn)
+                print(f)
                 try:
                     f.write(img)
                 finally:
                     f.close()
+        #             arr.append([col, fn])
+        # return arr
 
     def _parse(self, filepath):
         gex = r"(?<=tmp/data/)(.*)(?=/[0-9]/[0-9]/[0-9])(.*)"
