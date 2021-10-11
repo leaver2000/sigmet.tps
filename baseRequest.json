@@ -4,28 +4,14 @@
         "longName":"MRMS Merged Composite Reflectivity",
         "prodType":"NEXRAD",
         "subType":"MOSAIC",
-        "urlPath":"2D/MergedReflectivityQCComposite/",
-        "filePath":null,
-        "validTimes":null
+        "urlPath":"2D/MergedReflectivityQCComposite/"
 
     },{
         "name":"VIL",
         "longName":"MRMS HighRes Vertically Intergrated Liqud",
-        
         "prodType":"NEXRAD",
         "subType":"MOSAIC",
-        "urlPath":"2D/LVL3_HighResVIL/",
-        "filePath":null,
-        "validTimes":null
-
-    },{
-        "name":"probSevere",
-        "longName":"MRMS ProbSevere V3.01",
-        "prodType":"PROBSEVERE",
-        "subType":"GeoJSON",
-        "urlPath":"ProbSevere/PROBSEVERE/",
-        "filePath":null,
-        "validTimes":null
+        "urlPath":"2D/LVL3_HighResVIL/"
     }]
 }
 
