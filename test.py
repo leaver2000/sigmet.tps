@@ -1,118 +1,150 @@
-import json
-from dps.models import get_gridfs, bp
-# from dps.data_collection import collect
-from dps.data_processing import process
-from types import SimpleNamespace
-import numpy as np
-from datetime import datetime, timedelta
-from shutil import rmtree
-import os
+# from types import SimpleNamespace
+# from shutil import rmtree
+# import sched
+# import json
+# import time
+# import os
+# from dps.collect import reduce, collect
+# from dps.process import process
+# from dps.save import save, init_dataset
 import pandas as pd
+import numpy as np
+from urllib import request
 import re
-base_request = 'baseRequest.json'
-features = json.load(open(base_request))
+import numpy as np
+from dps.withMRMS import TileNames, Mosaic
+import matplotlib.pyplot as plt
+from PIL import Image, ImageChops
+DESIRED_LATRANGE = (20, 55)
+DESIRED_LONRANGE = (-130, -60)
+ZOOM = 5
+BGCOLOR = '#000000'
 
-def dumpJSON(req):
-    jd=json.dumps(req)
-    return json.loads(jd, object_hook=lambda d: SimpleNamespace(**d))
+# def process(x):
+#     print(x.name, x.filename, x.filepath, x.validtime)
 
-def scrape_dataset(x):
+
+def should_loop(rgba, datas):
+    newData = []
+
+    def should_be_transparent(r, g, b, a):
+        return r == 255 and g == 255 and b == 255 or r == 212 and g == 212 and b == 212
+
+    # print(np.array(datas, dtype=np.uint8))
+
+    for item in datas:
+
+        # print(np.array([item]))
+        if should_be_transparent(*item):
+            newData.append((255, 255, 255, 0))
+        else:
+            newData.append(item)  # other colours remain unchanged
+
+    rgba.putdata(newData)
+    rgba.save('test/loop-altered.png', "PNG")
+    # return rgba
+
+
+def with_numpy(rgba, imgdata):
+    white = np.array([[255, 255, 255, 255]], dtype=np.uint8)
+    transparent = np.array([255, 255, 255, 0], dtype=np.uint8)
+    equal = np.equal(white, imgdata)
+    newData = np.where(equal, transparent, imgdata)
+    print(dir(imgdata))
+    rgba.putpixel(newData)
+    rgba.save('test/numpy-altered.png', "PNG")
+
+
+def with_image1():
+    img = Image.open('test/TEST-5.png').convert("RGB")
+    bg = Image.new("RGB", img.size, BGCOLOR)
+    diff = ImageChops.difference(img, bg)
+    bbox = diff.getbbox()
+    new_img = img.crop(bbox)
+    rgba = new_img.convert("RGBA")
+    datas = rgba.getdata()
+    # should_loop(rgba, datas)
+    with_numpy(rgba, datas)
+
+    # tran_im.save('test/altered.png', "PNG")
+    # print(tran_im)
+
+    # newData = []
+
+    # white = np.array(
+    #     [[255, 255, 255, 255]], dtype=np.uint8)
+    # # or r == 212 and g == 212 and b == 212
+    # grey = np.array([212, 212, 212, 255], dtype=np.uint8)
+    # transparent = np.array([255, 255, 255, 0], dtype=np.uint8)
+
+    # imgdata = np.array(datas, dtype=np.uint8)
+    # np.equal(white, imgdata)
+    # d = np.where(np.equal(white, imgdata),
+    #              transparent, imgdata)
+    # print(d)
+    # im = Image.fromarray(d, mode='RGBA')
+    # # rgba.putdata(d)
+    # im.save('test/altered.png', "PNG")
+
+
+def with_image():
+    img = Image.open('test/TEST-5.png').convert("RGB")
+    bg = Image.new("RGB", img.size, BGCOLOR)
+    diff = ImageChops.difference(img, bg)
+    bbox = diff.getbbox()
+    x = np.asarray(img.crop(bbox).convert('RGBA')).copy()
+    x[:, :, 3] = (255 * (x[:, :, :3] != 255).any(axis=2)).astype(np.uint8)
+    new_img = Image.fromarray(x)
+    new_img.save('test/altered.png', "PNG")
+
+
+# with_image()
+
+
+def process(zoom=5):
+
+    dpi = np.multiply(150, zoom)
+
+    # img_source = f'{x.filename}-{zoom}'
+
+    # ? set zxy params via the TileNames Class
+    tn = TileNames(latrange=DESIRED_LATRANGE,
+                   lonrange=DESIRED_LONRANGE,
+                   zooms=zoom, verbose=False)
+
+    # ? wrapper for the MMM-py MosaicDisplay class
+    gf = 'test/MRMS_MergedReflectivityQCComposite_00.50_20211012-164446.grib2.gz'
+    display = Mosaic(gribfile=gf, dpi=dpi, work_dir='test/',
+                     latrange=tn.latrange, lonrange=tn.lonrange)
+
+    # ? wrapper for the MMM-py plot_horiz function
+    file = display.render(filename=f'TEST-{zoom}')
+
+    # ? using the provided tile names slice the Mosaic image into a slippy map directory
+
+    display.crop(file=file, tmp='test/', product='TEST',
+                 validtime='test-test-test', zoom=zoom, tile_names=tn)
+    plt.close('all')
+
+
+process()
+
+
+def collect(x):
     url = f"https://mrms.ncep.noaa.gov/data/{x.urlPath}"
     query = "?C=M;O=D"
-    gex = r"(?!.*_)(.*)(?=.grib2.gz)"
     page = pd.read_html(url+query)
     prods = np.array(*page)[3:-1]
-    flat_arr=prods[:,[0]].flatten()
-    # print(flatt_arr)
+    # ? flattens the df column as a 1-d array
+    files = prods[:, [0]].flatten()
+
+    print(files[0])
+    file = files[0]
+    request.urlretrieve(url+file, f'test/{file}')
 
 
-    # x = np.where(np.datetime64(flat_arr) ==0)
-    # print(x)
-    for a in flat_arr:
-        s = re.search(gex,a).group()
-        new_vt = datetime.strptime(s, '%Y%m%d-%H%M%S')
-
-        if (new_vt.minute % 10 ==0):
-            print(x.name, new_vt)
-            break
-        # print(a)
-
-    # for a in flat_arr:
-    #     s = re.search(gex,a).group()
-    #     new_vt = datetime.strptime(s, '%Y%m%d-%H%M%S')
-        # print(type(new_vt.minute),new_vt.minute==10)
-        # if new_vt.minute == timedelta(minutes=10):
-        #     print(new_vt)
-        #     break
-        # else:
-        #     continue
-        # delta = timedelta(minutes=10)
-        # # if 0 < new_vt.total_seconds() < delta.total_seconds():
-        # # print(x.name,new_vt,delta)
-        # print(new_vt.minute)
-        # # print(dir(new_vt))
+class DataSet:
+    urlPath = '2D/MergedReflectivityQCComposite/'
 
 
-
-
-
-def parse_time(vt):
-    return datetime.strptime(vt, '%Y%m%d-%H%M')
-
-
-
-for feat in features['request']:
-    x = dumpJSON(feat)
-    validTimes = bp.find_one({"name": x.name}, {"validTimes": 1, '_id': 0})['validTimes']
-    nowT = datetime.now()
-    minT = parse_time(validTimes[-1])
-    timeDelta = np.abs((minT - nowT))
-    expried_db=timeDelta.total_seconds() > 600
-    scrape_dataset(x)
-
-    if expried_db:
-        print('scrapping dataset')
-        # scrape_dataset(x)
-        pass
-
-    else:
-        print(timeDelta)
-
-
-
-
-def collect(collections):
-    # for key_names, min_time in collections:
-    print(collections)
-    # for 
-
-
-
-
-
-def run():
-    paths = ['tmp/data', 'tmp/raw/', 'tmp/img/']
-    [os.makedirs(path, exist_ok=True)for path in paths]
-   
-    grib_data = collect(features)
-    # for product, validtime, filepath in grib_data:
-    #     process(product, validtime, filepath)
-
-
-
-
-
-
-    # rmtree('tmp/', ignore_errors=False, onerror=None)
-# run()
-# b = collect(features)
-# print(b)
-
-
-
-
-# files,chunks = get_gridfs('CREF','20201012')#[f'data{vm}'for vm in ['.files','.chunks']]
-
-
-
-# print(dir(files),chunks)
+# collect(DataSet())

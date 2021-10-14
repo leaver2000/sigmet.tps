@@ -1,165 +1,70 @@
-
-from dps.controller import controller
-# import os
-# from glob import glob
+from types import SimpleNamespace
 from shutil import rmtree
-# from dps.router import test
-from dps.data_collection import collect, get_grouped_validtimes
-from dps.data_processing import process
-import json
-import os
-import numpy as np
-# rmtree('tmp/', ignore_errors=False, onerror=None)
-from dps.router import Router, bp, db
-from glob import glob
-from gridfs import GridFS
-import re
 import sched
+import json
 import time
-
-# route.gridfs(glob(os.path.join('tmp/data/*/*/*/*/', '*.png')))
-
-paths = ['tmp/data', 'tmp/raw/', 'tmp/img/']
-base_request = 'baseRequest.json'
-features = json.load(open(base_request))['request']
-
-nexrad_feature_names = []
-for feature in features:
-    if feature['prodType'] == 'NEXRAD':
-        nexrad_feature_names.append(feature['name'])
-
-    # print(feature)
-print(nexrad_feature_names)
+import os
+import dps.controller as tps
 
 
-class TmpTree:
-    def __init__(self, tmp, paths):
-        self.tmp = tmp
-        self.paths = paths
+def start(features):
+    paths = ['tmp/data', 'tmp/raw/', 'tmp/img/']
+    [os.makedirs(path, exist_ok=True)for path in paths]
 
-    def mk(self):
-        for path in self.paths:
-            os.makedirs(path, exist_ok=True)
+    #*----------------------(   reduce   )----------------------*#
+    # ? reduce datarequest via database dataset crosschecks
+    # crosschecks:
+    #     - age of images in mongodb database
+    #     - age of gribfile in MRMS dataset
+    # updates baseproduct classes /w validTimes attribute
+    # appends valid classes to validated_features list
+    validated_features = []
+    [tps.reduce(feature, validated_features) for feature in features]
 
-    def rm(self):
-        rmtree(self.tmp, ignore_errors=False, onerror=None)
+    #*----------------------(   collect   )----------------------*#
+    # ? collect raw data via the validated_features
+    collected_data = [tps.collect(feature) for feature in validated_features]
 
+    #*----------------------(   process   )----------------------*#
+    # ? processing of raw grib data into zxy tile format
+    #  Reduction, proccesing, & saving are accomplishedin seperate loops.
+    #  This enables the multithread proceccesing of images.
+    #  Without interfering witih database the database process
+    [tps.process(data) if data is not None else None for data in collected_data]
 
-route = Router()
-tt = TmpTree('tmp/', paths)
+    #*----------------------(   save   )----------------------*#
+    # ? Saves images, updates baseproduct, and removes old collections
+    [tps.save(data) if data is not None else None for data in collected_data]
+    # [save(feature) for feature in validated_features]
 
-
-def reinitialize_database(feature_names):
-    for collection in db.list_collection_names():
-        isTrue = bool(re.search(r'.*\.chunks$', collection)
-                      ) or bool(re.search(r'.*\.files$', collection))
-
-        if isTrue:
-            print(f'removing {collection}')
-            db.drop_collection(collection)
-        else:
-            pass
-    # ? initalize MOSAIC
-    for name in feature_names:
-        bp.update_one({"name": name}, {'$set': {'validTimes': []}})
-
-
-# reinitialize_database(nexrad_feature_names)
-
-
-def dosome_more(sc):
-    s.enter(300, 1, dosome_more, (sc,))
-    # ? make tmp tree
-    tt.mk()
-    # ? collect raw data
-    raw_data = collect(features)
-    print(raw_data)
-    for product, validtime, filepath in raw_data:
-        # ? process data
-        process(product, validtime, filepath)
-        # ? write all files in the tmp tree to the database data
-        route.gridfs(glob(os.path.join('tmp/data/*/*/*/*/', '*.png')))
-        # ? list of avaiable valid times in product directory
-        data = bp.find_one({"name": product}, {"validTimes": 1, '_id': 0})
-        vt = data['validTimes']
-        # ? slice the back of the array
-        diff = len(vt)-24
-        vts2db = vt[diff:]
-        # ? append new value
-        vts2db.append(validtime)
-        # ? update product directoy
-        print(f'\n{product} files & chunks created')
-        print(f'updating product directory with\n validTime{validtime} ')
-        bp.update_one({"name": product}, {'$set': {'validTimes': vts2db}})
-        # ? with the removed time drop chunks and files
-        vts2rm = vt[:diff]
-        for vtRm in vts2rm:
-            try:
-                _files = f'{product}-{vtRm}.files'
-                db.drop_collection(_files)
-                _chunks = f'{product}-{vtRm}.chunks'
-                db.drop_collection(_chunks)
-                print(f'{_files} & {_chunks} succuffly removed')
-            except:
-                print('could not remove files and chunks')
-
-            # files, chunks = route.get_gridfs(product, vtRm)
-            # try:
-            #     files.drop()
-            #     chunks.drop()
-            # except:
-            #     print('could not drop files')
-            # try:
-            #     pass
-            # except:
-            #     failed
-
-    tt.rm()
+    #
+    rmtree('tmp/', ignore_errors=False, onerror=None)
 
 
+# ? load the baseRequest into a type(class)
+def load(feature):
+    jd = json.dumps(feature)
+    return json.loads(jd, object_hook=lambda d: SimpleNamespace(**d))
+
+
+# ? schedule itterator to run every 8 mins
+def ready(sc, request):
+    data = []
+    s.enter(480, 1, ready, (sc, request))
+    [data.append(load(x)) for x in request['request']]
+    start(data)
+
+
+# ? schedule itterator to run every 8 mins
 s = sched.scheduler(time.time, time.sleep)
-s.enter(300, 1, dosome_more, (s,))
+s.enter(480, 1, ready, (s, json.load(open('baseRequest.json'))))
 s.run()
 
 
-# while True:
-#     sleep(60 - time() % 300)
-#     dosome_more(12)
-# vt[diff:]
-
-# print(vt_to_db)
-
-# for
-# print(vts_to_rm)
-# print()
-# print(np.diff([len(vt), 24]))
-# if len(vt) > 24:
-#     # print(vt[-:])
-# files, chunks = route.get_gridfs(product, validtime)
-
-# if len(db_data['validTimes']) > 24:
-#     # db.lists.update({}, {$unset : {"interests.3" : 1 }})
-#     # db.lists.update({}, {$pull : {"interests" : null}})
-#     pass
-# else:
-#     pass
-# print()
-# for collection in bp.find({"name":product}):
-#     col_vt=collection['validTimes']
-#     col_vt.append(validtime)
-#     if len(col_vt)>24:
-#         # append and remove
-#         # remove something from the list
-#         pass
-#     else:
-#         print(col_vt)
-# process(product,validtime,filepath)
-# rmtree('tmp/', ignore_errors=False, onerror=None)
-# print(raw_data)
+def test(request):
+    data = []
+    [data.append(load(x)) for x in request['request']]
+    start(data)
 
 
-# rmtree('tmp/', ignore_errors=False, onerror=None)
-# test()
-# controller(verbose=True)
-# print(glob(os.path.join(f'tmp/data/*/*/*/*/', '*.png')))
-# test(glob(os.path.join(f'tmp/data/*/*/*/*/', '*.png')))
+# test(json.load(open('baseRequest.json')))
