@@ -7,7 +7,7 @@ COPY environment.yml .
 RUN conda env create -f environment.yml
 
 # Make RUN commands use the new environment:
-SHELL ["conda", "run", "-n", "production-env", "/bin/bash", "-c"]
+SHELL ["conda", "run", "-n", "tps", "/bin/bash", "-c"]
 
 # Demonstrate the environment is activated:
 # RUN echo "Make sure flask is installed:"
@@ -16,6 +16,6 @@ SHELL ["conda", "run", "-n", "production-env", "/bin/bash", "-c"]
 # The code to run when container is started:
 COPY ./modules ./modules
 COPY MRMSDataset.py .
-ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "production-env", "python", "local_data_manager.py"]
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "tps", "python3", "tps"]
 # docker pull continuumio/miniconda3:4.10.3-alpine
 # docker build -t leaver/conda:0.3 .
