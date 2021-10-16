@@ -1,12 +1,18 @@
-name: production-env
+name: tps
 channels:
+  - default
   - conda-forge
 dependencies:
+  - python=3.9
   - numpy
   - pandas
   - matplotlib
   - basemap
-  # pygrib is required for MMM-py degribing
   - pygrib
   - lxml 
-  - pymongo 
+  - pymongo
+  - pip
+  - pip:
+    - pymongo[srv]
+#*  conda env create --file environment.yml
+#*  conda env update --file environment.yml --prune

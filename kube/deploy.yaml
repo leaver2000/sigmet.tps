@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sigmet-tps
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: sigmet-tps
+      tier: server
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sigmet-tps
+        tier: server
+    spec:
+      containers:
+        - name: sigmet-tps
+          image: gcr.io/wild-blue-yonder/github.com/leaver2000/sigmet-tps
+          ports:
+            - containerPort: 5050
+          env:
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: MONGO_PASSWORD
+                  name: credentials
+            - name: MONGO_USER
+              valueFrom:
+                secretKeyRef:
+                  key: MONGO_USER
+                  name: credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sigmet-tps
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: sigmet-tps
+    tier: server
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5050
+    name: http
