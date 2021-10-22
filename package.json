@@ -1,0 +1,16 @@
+{
+  "name": "sigmet.tps",
+  "version": "1.0.0",
+  "main": "tps",
+  "repository": "git@github.com:leaver2000/mrms-ldm.git",
+  "author": "Jason Leaver <jason.leaver.developer@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "nodemon --watch tps/ --exec python3 tps LIVE",
+    "test": "nodemon --watch tps/ --exec python3 tps TEST"
+  },
+  
+  "devDependencies": {
+    "nodemon": "^2.0.14"
+  }
+}

@@ -5,6 +5,8 @@ import json
 import time
 import os
 import controller as tps
+import sys
+ENV = sys.argv[1]
 
 
 def start(features):
@@ -58,9 +60,14 @@ def ready(sc, request):
 
 # ? schedule itterator to run every 8 mins
 if __name__ == '__main__':
-    s = sched.scheduler(time.time, time.sleep)
-    s.enter(480, 1, ready, (s, json.load(open('baseRequest.json'))))
-    s.run()
+    if ENV == 'LIVE':
+        # if not TEST_RUN:3
+        s = sched.scheduler(time.time, time.sleep)
+        s.enter(480, 1, ready, (s, json.load(open('baseRequest.json'))))
+        s.run()
+    elif ENV == 'TEST':
+
+        print(f'hello {ENV}')
 
 
 def test(request):
